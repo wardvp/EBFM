@@ -1,3 +1,5 @@
+set -e
+
 if [[ -z "${YAC_BUILD_DIR}" ]]; then
   echo ERROR: Please export YAC_BUILD_DIR=/some/path/like/yac/build
   exit 1  # exit with error
