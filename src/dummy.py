@@ -1,12 +1,16 @@
 import coupling
 from pathlib import Path
+import argparse
 
 from ebfm import INIT, LOOP_general_functions, LOOP_climate_forcing, LOOP_EBM, LOOP_SNOW, LOOP_mass_balance
 from ebfm import LOOP_write_to_file, FINAL_create_restart_file
+from ebfm.grid import GridInputType
 
+from mpi4py import MPI
 from utils import setup_logging
 import logging
-import matplotlib.pyplot as plt
+
+from typing import NamedTuple
 
 
 log_levels = {
@@ -21,24 +25,69 @@ logger = logging.getLogger(__name__)
 
 
 def main():
+    logger.info("Starting EBFM...")
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--couple-to-elmer-ice",
+                        action="store_true",
+                        help="Enable coupling with Elmer/Ice models via YAC")
+
+    parser.add_argument("--couple-to-icon-atmo",
+                        action="store_true",
+                        help="Enable coupling with ICON via YAC")
+
+    parser.add_argument("--coupler-config",
+                        type=Path,
+                        help="Path to the coupling configuration file (YAC coupler_config.yaml).")
+
+    parser.add_argument("--elmer-mesh",
+                        type=Path,
+                        help="Path to the Elmer mesh file. Either --elmer-mesh or --matlab-mesh is required.")
+
+    parser.add_argument("--matlab-mesh",
+                        type=Path,
+                        help="Path to the MATLAB mesh file. Either --elmer-mesh or --matlab-mesh is required.")
+
+    parser.add_argument("--netcdf-mesh",
+                        type=Path,
+                        help="Path to the NetCDF mesh file. Optional if using --elmer-mesh. If --netcdf-mesh is provided elevations will be read from the given NetCDF mesh file.")
+
+    parser.add_argument("--is-partitioned-elmer-mesh",
+                        action="store_true",
+                        help="Indicate if the provided Elmer mesh is partitioned for parallel runs.")
+
+    parser.add_argument("--use-part",
+                        type=int,
+                        default=MPI.COMM_WORLD.rank + 1,
+                        help="If using a partitioned Elmer mesh, allows to specify which partition ID to use for this run. If not provided, the MPI rank + 1 will be used as partition ID.")
+
+    args = parser.parse_args()
+
+    logger.info(f"Done parsing command line arguments.")
+    logger.debug(f"Parsed the following command line arguments:")
+    for arg, val in vars(args).items():
+        logger.debug(f"  {arg}: {val}")
 
     # Model setup & initialization
-    grid, time2, io, phys    = INIT.init_config()
+    grid, time2, io, phys    = INIT.init_config(args)
     C                        = INIT.init_constants()
-    grid                     = INIT.init_grid(grid, io)
+    grid                     = INIT.init_grid(grid, io, args)
 
     OUT, IN, OUTFILE = INIT.init_initial_conditions(C, grid, io, time2)
 
-    if io['use_coupling']:
+    if args.couple_to_icon_atmo or args.couple_to_elmer_ice:
         # TODO: introduce minimal stub implementation
         # TODO consider introducing an ebfm_adapter_config.yaml
         coupler = coupling.init(
-            yac_config=Path('config') / 'coupling.yaml',
+            coupler_config=args.coupler_config,
             ebfm_coupling_config=Path('dummies') / 'EBFM' / 'ebfm-config.yaml',
-            couple_with_icon_atmo=io['couple_to_icon_atmo'],
-            couple_with_elmer_ice=io['couple_to_elmer_ice'],
+            couple_with_icon_atmo=args.couple_to_icon_atmo,
+            couple_with_elmer_ice=args.couple_to_elmer_ice,
         )
         coupling.setup(coupler, grid["mesh"], time2)
+    else:
+        coupler = coupling.NoCoupler('ebfm')
 
     # Time-loop
     logger.info('Entering time loop...')
@@ -49,7 +98,7 @@ def main():
         logger.info(f'Time step {t} of {time2["tn"]} (dt = {time2["dt"]} days)')
 
         # Read and prepare climate input
-        if io['couple_to_icon_atmo']:
+        if coupler and coupler.couple_to_icon_atmo:
             # Exchange data with ICON
             logger.info('Data exchange with ICON')
             logger.debug('Started...')
@@ -73,10 +122,10 @@ def main():
             IN['q'][:] = 0          # TODO: Read q from ICON instead and convert to RH
             IN['Pres'][:] = 101500  # TODO: Read Pres from ICON instead
 
-        IN, OUT = LOOP_climate_forcing.main(C, grid, IN, t, time2, OUT, io)
+        IN, OUT = LOOP_climate_forcing.main(C, grid, IN, t, time2, OUT, coupler)
 
         # Run surface energy balance model
-        OUT = LOOP_EBM.main(C, OUT, IN, time2, grid, phys, io)
+        OUT = LOOP_EBM.main(C, OUT, IN, time2, grid, coupler)
 
         # Run snow & firn model
         OUT = LOOP_SNOW.main(C, OUT, IN, time2['dt'], grid, phys)
@@ -84,7 +133,7 @@ def main():
         # Calculate surface mass balance
         OUT = LOOP_mass_balance.main(OUT, IN, C)
 
-        if io['use_coupling'] and coupler.couple_to_elmer_ice:
+        if coupler.couple_to_elmer_ice:
             # Exchange data with Elmer
             logger.info('Data exchange with Elmer/Ice')
             logger.debug('Started...')
@@ -104,18 +153,25 @@ def main():
             # IN['dhdx'] = data_from_elmer('dhdx')
             # IN['dhdy'] = data_from_elmer('dhdy')
 
-        # Write output to files (only in uncoupled run and for unpartioned grid)
-        if not grid['is_partitioned'] and not io['use_coupling']:
+        # Write output to files (only in uncoupled run and for unpartitioned grid)
+        if not grid['is_partitioned'] and not coupler.has_coupling:
+            assert (grid['input_type'] is GridInputType.MATLAB), \
+                "Output writing currently only implemented for MATLAB input grids."
             io, OUTFILE = LOOP_write_to_file.main(OUTFILE, io, OUT, grid, t, time2, C)
             pass
+        elif grid['is_partitioned'] or coupler.has_coupling:
+            logger.warning('Skipping writing output to file for coupled or partitioned runs.')
+        else:
+            logger.error('Unhandled case in output writing.')
+            raise Exception("Unhandled case in output writing.")
 
     # Write restart file
-    if not grid['is_partitioned'] and not io['use_coupling']:
+    if not grid['is_partitioned'] and not coupler.has_coupling:
         FINAL_create_restart_file.main(OUT, io)
 
     logger.info('Time loop completed.')
 
-    if io['use_coupling']:
+    if coupler.has_coupling:
         coupling.finalize(coupler)
 
     logger.info('Closing down EBFM.')
