@@ -15,8 +15,8 @@ from typing import NamedTuple
 
 log_levels = {
     'file':logging.DEBUG,  # log level for logging to file
-    0: logging.INFO,  # log level for rank 0
-    # 1: logging.DEBUG,  # to log other ranks to console define log level here
+    # 0: logging.INFO,  # log level for rank 0
+    0: logging.DEBUG,  # to log other ranks to console define log level here
 }
 setup_logging(log_levels=log_levels)
 
@@ -44,6 +44,10 @@ def main():
     parser.add_argument("--elmer-mesh",
                         type=Path,
                         help="Path to the Elmer mesh file. Either --elmer-mesh or --matlab-mesh is required.")
+
+    parser.add_argument("--elmer-xios-mesh",
+                        type=Path,
+                        help="Path to the Elmer-xios mesh file. One of the following options is required: --elmer-mesh, --matlab-mesh, --elmer-xios-mesh.")
 
     parser.add_argument("--matlab-mesh",
                         type=Path,
