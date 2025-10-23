@@ -242,21 +242,8 @@ def main(OUTFILE, io, OUT, grid, t, time, C, gridtype):
                 if gridtype == 'unstructured':
                     # Handle `sub` variables (3D: time, y, nl)
                     if varname.startswith("sub"):
-                        print("Doing 3D variables")
-                        print(varname)
-                        print(var_1D.shape)
-                        # sys.exit()
-                        # var_3D = np.full((grid["lat"].size, grid["nl"]), -9999.0)
-                        # var_3D[grid["ind"], :] = var_1D
-                        # var_4D = var_3D.reshape(-1, grid["nl"]).reshape(
-                            # *grid["x_2D"].shape, grid["nl"]
-                        # )
                         io["nc_file"][varname][time_index, :, :] = var_1D
                     else:
-                        print(varname)
-                        print(var_1D.shape)
-                        # var_2D = np.full(grid["x_2D"].shape, -9999.0)
-                        # var_2D.flat[grid["ind"]] = var_1D
                         io["nc_file"][varname][time_index, :] = var_1D
                 elif gridtype == 'structured':
                     # Handle `sub` variables (4D: time, y, x, nl)
