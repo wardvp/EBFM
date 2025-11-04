@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 EBFM Authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 import numpy as np
 
 from ebfm import LOOP_EBM_SHF,LOOP_EBM_GHF, LOOP_EBM_LHF, LOOP_EBM_LWin, LOOP_EBM_LWout, LOOP_EBM_SWin
