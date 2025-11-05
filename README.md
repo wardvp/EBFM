@@ -164,3 +164,25 @@ make: *** [Makefile:48: elmer_grid.o] Error 1
 ```
 
 *Solution:* `sudo apt-get install libproj-dev`
+
+# Developer notes
+
+## Code formatting
+
+Automated checks for PEP8 compiance are implemented following [^1] with some modifications. Please install pre-commit first:
+
+```sh
+pipx install pre-commit
+```
+
+Then, install the pre-commit hooks by running the following command from this folder:
+
+```sh
+pre-commit install
+```
+
+The pre-commit hooks will now run automatically on every commit. 
+
+----
+
+[^1]: https://ljvmiranda921.github.io/notebook/2018/06/21/precommits-using-black-and-flake8/
