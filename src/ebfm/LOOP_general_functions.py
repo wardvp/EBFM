@@ -13,10 +13,6 @@ def print_time(t, time):
     Returns:
         dict: Updated time dictionary with calculated current and previous times.
     """
-    # Convert time parameters to datetime objects
-    # time['TS'] = datetime.strptime(time['ts'], '%Y-%m-%d %H:%M:%S')  # Start time
-    # time['TE'] = datetime.strptime(time['te'], '%Y-%m-%d %H:%M:%S')  # End time
-
     # Calculate current and previous model times based on the time step
     time["TCUR"] = time["ts"] + timedelta(days=(t - 1) * time["dt"])
     time["TPREV"] = time["ts"] + timedelta(days=(t - 2) * time["dt"])

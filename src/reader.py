@@ -61,7 +61,6 @@ def read_elmer_mesh(mesh_root: Path, is_partitioned: bool = False, partition_id:
     ), f"Number of vertices in nodes file ({len(z_vertices)}) does not match the header ({n_vertices})."
 
     global_cell_ids, global_cell_to_vertex = elmer.parser.parse_elements(elements_file)
-    local_cell_ids = range(len(global_cell_ids))  # use [0,1,...,n_cells-1] to identify cells locally
 
     vertex_l2g = {
         l: g for l, g in zip(local_vertex_ids, global_vertex_ids)

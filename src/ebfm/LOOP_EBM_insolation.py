@@ -105,9 +105,6 @@ def main(grid, time2, OUT):
         )
         ddy[azimuth > 0.75 * np.pi] = 1
 
-        # Initialize the shade_2D array
-        mask = grid["mask_2D"]
-
         # Shading routine
         z_flat = grid["z_2D"].ravel()
         z_current = z_flat[grid["ind"]]

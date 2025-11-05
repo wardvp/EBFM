@@ -331,7 +331,6 @@ def main(C, OUT, IN, dt, grid, phys):
         """
         Calculate heat diffusion and update temperatures
         """
-        nl = grid["nl"]
         dz1 = (OUT["subZ"][:, 0] + 0.5 * OUT["subZ"][:, 1]) ** 2
         dz2 = 0.5 * (OUT["subZ"][:, 2:] + OUT["subZ"][:, 1:-1]) ** 2
         kk = 0.138 - 1.01e-3 * OUT["subD"] + 3.233e-6 * OUT["subD"] ** 2  # Effective conductivity

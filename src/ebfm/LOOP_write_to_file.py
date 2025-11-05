@@ -104,10 +104,9 @@ def main(OUTFILE, io, OUT, grid, t, time, C):
             for file in io["fid"].values():
                 file.close()
 
+            # TODO: WORK IN PROGRESS
             # Prepare the runinfo dictionary
-            runinfo = {"grid": grid, "time": time, "IOout": io, "Cout": C}
-
-            ################ WORK IN PROGRESS ###############
+            # runinfo = {"grid": grid, "time": time, "IOout": io, "Cout": C}
 
         return True
 
