@@ -63,9 +63,11 @@ def read_elmer_mesh(mesh_root: Path, is_partitioned: bool = False, partition_id:
     global_cell_ids, global_cell_to_vertex = elmer.parser.parse_elements(elements_file)
 
     vertex_l2g = {
-        l: g for l, g in zip(local_vertex_ids, global_vertex_ids)
+        loc: glob for loc, glob in zip(local_vertex_ids, global_vertex_ids)
     }  # map local ids [0,1,...n_verts] to global_vertex_ids
-    vertex_g2l = {g: l for l, g in vertex_l2g.items()}  # invert dictionary to get map for global ids to local ids
+    vertex_g2l = {
+        glob: loc for loc, glob in vertex_l2g.items()
+    }  # invert dictionary to get map for global ids to local ids
 
     cell_to_vertex_local = np.array([[vertex_g2l[g_v] for g_v in c] for c in global_cell_to_vertex])
 
