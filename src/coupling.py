@@ -85,7 +85,8 @@ class YACCoupler(Coupler):
     component: yac.Component = None
     grid: yac.UnstructuredGrid = None
     corner_points: yac.Points = None
-    # TODO use a single dictionary for both source and target fields; provide properties to create dicts containing source_fields and target_fields by comparing to exchange_type
+    # TODO use a single dictionary for both source and target fields;
+    # TODO provide properties to create dicts containing source_fields and target_fields by comparing to exchange_type
     source_fields: Dict[str, yac.Field] = {}
     target_fields: Dict[str, yac.Field] = {}
 
@@ -154,9 +155,21 @@ class YACCoupler(Coupler):
                 name="T_ice",
                 metadata="Near surface temperature at Ice surface (in K)",
             ),
-            FieldDefinition(exchange_type=yac.ExchangeType.SOURCE, name="smb", metadata="??? (in ???)"),
-            FieldDefinition(exchange_type=yac.ExchangeType.SOURCE, name="runoff", metadata="Runoff (in ???)"),
-            FieldDefinition(exchange_type=yac.ExchangeType.TARGET, name="h", metadata="Surface height (in m)"),
+            FieldDefinition(
+                exchange_type=yac.ExchangeType.SOURCE,
+                name="smb",
+                metadata="??? (in ???)",
+            ),
+            FieldDefinition(
+                exchange_type=yac.ExchangeType.SOURCE,
+                name="runoff",
+                metadata="Runoff (in ???)",
+            ),
+            FieldDefinition(
+                exchange_type=yac.ExchangeType.TARGET,
+                name="h",
+                metadata="Surface height (in m)",
+            ),
         ]
 
         timestep_value = days_to_iso(time["dt"])
@@ -175,7 +188,10 @@ class YACCoupler(Coupler):
                 timestep.format,
             )
             self.interface.def_field_metadata(
-                field.component_name, field.grid_name, field_definition.name, field_definition.metadata.encode("utf-8")
+                field.component_name,
+                field.grid_name,
+                field_definition.name,
+                field_definition.metadata.encode("utf-8"),
             )
 
             if field_definition.exchange_type == yac.ExchangeType.SOURCE:
@@ -190,9 +206,15 @@ class YACCoupler(Coupler):
         FieldDefinition = namedtuple("FieldDefinition", ["exchange_type", "name", "metadata"])
         # TODO: Get hard-coded data below from dummies/EBFM/ebfm-config.yaml
         field_definitions = [
-            # FieldDefinition(exchange_type=yac.ExchangeType.SOURCE, name="albedo", metadata="Albedo of the ice surface (in ???)"),
+            # FieldDefinition(
+            #     exchange_type=yac.ExchangeType.SOURCE,
+            #     name="albedo",
+            #     metadata="Albedo of the ice surface (in ???)"
+            # ),
             FieldDefinition(
-                exchange_type=yac.ExchangeType.TARGET, name="pr", metadata="Precipitation rate (in kg m-2 s-1)"
+                exchange_type=yac.ExchangeType.TARGET,
+                name="pr",
+                metadata="Precipitation rate (in kg m-2 s-1)",
             ),
             FieldDefinition(
                 exchange_type=yac.ExchangeType.TARGET,
@@ -216,8 +238,16 @@ class YACCoupler(Coupler):
             FieldDefinition(
                 exchange_type=yac.ExchangeType.TARGET, name="tas", metadata="Temperature at surface (in K)"
             ),
-            # FieldDefinition(exchange_type=yac.ExchangeType.TARGET, name='huss', metadata='Specific humidity at surface (in kg kg-1)'),
-            # FieldDefinition(exchange_type=yac.ExchangeType.TARGET, name='sfcPressure', metadata='Surface pressure (in Pa)')
+            # FieldDefinition(
+            #     exchange_type=yac.ExchangeType.TARGET,
+            #     name="huss",
+            #     metadata="Specific humidity at surface (in kg kg-1)"
+            # ),
+            # FieldDefinition(
+            #     exchange_type=yac.ExchangeType.TARGET,
+            #     name="sfcPressure",
+            #     metadata="Surface pressure (in Pa)"
+            # ),
         ]
 
         timestep_value = days_to_iso(time["dt"])
@@ -250,9 +280,11 @@ class YACCoupler(Coupler):
 
         for field in self.target_fields.values():
             is_defined = self.interface.get_field_is_defined(field.component_name, field.grid_name, field.name)
-            assert (
-                is_defined
-            ), f"Field '{field.name}' is not defined in YAC for component '{field.component_name}' and grid '{field.grid_name}'."
+            assert is_defined, (
+                f"Field '{field.name}' is not defined in YAC for component '{field.component_name}' and "
+                f"grid '{field.grid_name}'."
+            )
+
             field_role = self.interface.get_field_role(field.component_name, field.grid_name, field.name)
             assert (
                 field_role == yac.ExchangeType.TARGET

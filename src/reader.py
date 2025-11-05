@@ -102,24 +102,28 @@ def read_dem(dem_file: Path, xs: NDArray[np.float64], ys: NDArray[np.float64]):
     idx_x = np.searchsorted(nc["x"], xs)
 
     # find all matching ids in y direction
-    # nc['y'] is in reversed order. So finding the matches is a bit more complicated since np.searchsorted expects and array in ascending order
-    # sorter=reversed(...) allows us to find indices in an array with descending order
+    # nc['y'] is in reversed order. So finding the matches is a bit more complicated since np.searchsorted expects and
+    # array in ascending order sorter=reversed(...) allows us to find indices in an array with descending order
     idx_y = np.searchsorted(nc["y"], ys, sorter=list(reversed(range(len(nc["y"])))))
     idx_y *= -1  # we have invert the sign since indices of the reversed array are counted from the back
     idx_y += -1
 
     print(
-        f"{np.sum(abs(xs - nc['x'][idx_x][:]) > 10e-5)} of {len(idx_x)} x-coordinates have a significant mismatch. surface value of a neighboring point will be used."
+        f"{np.sum(abs(xs - nc['x'][idx_x][:]) > 10e-5)} of {len(idx_x)} x-coordinates have a significant mismatch."
+        " Surface value of a neighboring point will be used."
     )
     print(
-        f"{np.sum(abs(ys - nc['y'][idx_y][:]) > 10e-5)} of {len(idx_y)} y-coordinates have a significant mismatch. surface value of a neighboring point will be used."
+        f"{np.sum(abs(ys - nc['y'][idx_y][:]) > 10e-5)} of {len(idx_y)} y-coordinates have a significant mismatch."
+        " Surface value of a neighboring point will be used."
     )
 
     surf = nc["surface"][:]  # get numpy array
     return surf[idx_y, idx_x]  # sample at given indexes and return
 
 
-def read_matlab(mat_file: Path) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+def read_matlab(
+    mat_file: Path,
+) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
     """Read custom grid from a MATLAB file.
     Args:
         mat_file (Path): Path to the MATLAB file.
@@ -130,7 +134,10 @@ def read_matlab(mat_file: Path) -> tuple[NDArray[np.float64], NDArray[np.float64
 
 
 def write_dem_as_elmer(
-    mesh: TriangleMesh, h: NDArray[np.float64], dem_file: Path, allow_overwrite: bool = False
+    mesh: TriangleMesh,
+    h: NDArray[np.float64],
+    dem_file: Path,
+    allow_overwrite: bool = False,
 ) -> None:
     """Write digital elevation model to a file following the structure of an existing Elmer mesh
     Args:
@@ -149,12 +156,21 @@ def write_dem_as_elmer(
     import pandas as pd
 
     # Create a DataFrame with the required structure
-    df = pd.DataFrame({"Node ID": mesh.vertex_ids, "Node Type": -1, "x": mesh.x_vertices, "y": mesh.y_vertices, "z": h})
+    df = pd.DataFrame(
+        {
+            "Node ID": mesh.vertex_ids,
+            "Node Type": -1,
+            "x": mesh.x_vertices,
+            "y": mesh.y_vertices,
+            "z": h,
+        }
+    )
 
     def fortran_style_sci(x, precision=15):
         """Convert a number to Fortran-style scientific notation."""
         if x == 0:
-            return f" 0.{''.join(['0']*precision)}E+00"  # special case for zero; Fortran style requires leading space for positive numbers
+            # special case for zero; Fortran style requires leading space for positive numbers
+            return f" 0.{''.join(['0'] * precision)}E+00"
 
         exp = int(np.floor(np.log10(abs(x)))) + 1
         mantissa = x / (10**exp)
@@ -169,8 +185,8 @@ def write_dem_as_elmer(
         float_format=fortran_style_sci,
         index=False,
         header=False,
-        quoting=csv.QUOTE_NONE,  # do not use quotes around fields (avoids "..." around numbers if leading space is introduced for positive numbers)
         escapechar="\\",  # required when using QUOTE_NONE with special chars
+        quoting=csv.QUOTE_NONE,  # do not use quotes around fields
     )
 
     # Postprocess file to ensure it matches Elmer's expected format

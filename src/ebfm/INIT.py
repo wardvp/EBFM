@@ -172,9 +172,10 @@ def init_grid(grid, io, args: Namespace):
 
     grid["is_partitioned"] = args.is_partitioned_elmer_mesh
     if grid["is_partitioned"]:
-        assert (
-            args.netcdf_mesh
-        ), "--is-partitioned-elmer-mesh requires --netcdf-mesh. (Without --netcdf-mesh should also work but is untested.)"
+        assert args.netcdf_mesh, (
+            "--is-partitioned-elmer-mesh requires --netcdf-mesh. "
+            "(Without --netcdf-mesh should also work but is untested.)"
+        )
         logger.info("Using partitioned grid...")
     else:
         logger.info("Using non-partitioned grid...")
@@ -187,13 +188,18 @@ def init_grid(grid, io, args: Namespace):
         grid["input_type"] = GridInputType.ELMER
     else:
         logger.error(
-            f"Invalid grid configuration. EBFM supports the grid types {[t.name for t in GridInputType]}. Please please refer to the documentation for correct configuration."
+            f"Invalid grid configuration. EBFM supports the grid types {[t.name for t in GridInputType]}. "
+            "Please please refer to the documentation for correct configuration."
         )
         raise Exception("Invalid grid configuration.")
 
     if grid["input_type"] is GridInputType.CUSTOM:  # Read grid from Elmer, elevations from BedMachine
         if grid["is_partitioned"]:
-            mesh: Mesh = read_elmer_mesh(mesh_root=args.elmer_mesh, is_partitioned=True, partition_id=args.use_part)
+            mesh: Mesh = read_elmer_mesh(
+                mesh_root=args.elmer_mesh,
+                is_partitioned=True,
+                partition_id=args.use_part,
+            )
         else:
             mesh: Mesh = read_elmer_mesh(mesh_root=args.elmer_mesh)
 
@@ -211,10 +217,15 @@ def init_grid(grid, io, args: Namespace):
         # TODO later add slope
         # dzdx, dzdy = mesh.dzdy, mesh.dzdy
     elif grid["input_type"] is GridInputType.ELMER:  # Read grid and elevations from Elmer
-        mesh: Mesh = read_elmer_mesh(
-            args.elmer_mesh
-        )  # assuming mesh/MESH/mesh.nodes contains DEM data in the z component; see mesh/README.md for the required preprocessing steps.
-        grid["x"], grid["y"], grid["z"] = mesh.x_vertices, mesh.y_vertices, mesh.z_vertices
+        mesh: Mesh = read_elmer_mesh(args.elmer_mesh)
+
+        # assuming mesh/MESH/mesh.nodes contains DEM data in the z component
+        # see mesh/README.md for the required preprocessing steps.
+        grid["x"], grid["y"], grid["z"] = (
+            mesh.x_vertices,
+            mesh.y_vertices,
+            mesh.z_vertices,
+        )
         grid["z"] = np.random.uniform(0, 100, size=len(grid["x"]))  # test values!
         grid["slope_x"] = np.zeros_like(grid["x"])  # test values!
         grid["slope_y"] = np.zeros_like(grid["x"])  # test values!
@@ -414,7 +425,9 @@ def init_initial_conditions(C, grid, io, time):
                 OUT[var_name] = var_data
 
         OUT["timelastsnow"] = num2date(
-            OUT["timelastsnow_netCDF"], units="days since 1970-01-01 00:00:00", calendar="gregorian"
+            OUT["timelastsnow_netCDF"],
+            units="days since 1970-01-01 00:00:00",
+            calendar="gregorian",
         )
 
     else:

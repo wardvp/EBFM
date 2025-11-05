@@ -9,7 +9,8 @@ def print_time(t, time):
 
     Parameters:
         t (int): Current time step.
-        time (dict): Dictionary containing time-related parameters, such as start time (ts), end time (te), and time step (dt).
+        time (dict): Dictionary containing time-related parameters, such as start time (ts), end time (te), and time
+                     step (dt).
 
     Returns:
         dict: Updated time dictionary with calculated current and previous times.
@@ -27,7 +28,10 @@ def print_time(t, time):
 
     # Print the current time parameters
     print(
-        f"Year: {tempdate.tm_year:4d}   Month: {tempdate.tm_mon:2d}   Day: {tempdate.tm_mday:2d}   Hour: {tempdate.tm_hour:2d}"
+        f"Year: {tempdate.tm_year:4d}   "
+        f"Month: {tempdate.tm_mon:2d}   "
+        f"Day: {tempdate.tm_mday:2d}   "
+        f"Hour: {tempdate.tm_hour:2d}"
     )
 
     return time

@@ -560,9 +560,9 @@ def main(C, OUT, IN, dt, grid, phys):
         # Update density after refreezing
         OUT["subD"] += RS / OUT["subZ"]
 
-        #############################################################
-        ### REFREEZING OF IRREDUCIBLE WATER
-        #############################################################
+        ###########################################################
+        # REFREEZING OF IRREDUCIBLE WATER
+        ###########################################################
         # Determine whether cold content or density limits the amount of refreezing
         OUT["cpi"] = 152.2 + 7.122 * OUT["subT"]
         c1 = OUT["cpi"] * OUT["subD"] * OUT["subZ"] * (C["T0"] - OUT["subT"]) / C["Lm"]

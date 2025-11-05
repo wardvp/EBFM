@@ -53,7 +53,9 @@ def main(OUT, io):
             return True
 
     OUT["timelastsnow_netCDF"] = date2num(
-        OUT["timelastsnow"], units="days since 1970-01-01 00:00:00", calendar="gregorian"
+        OUT["timelastsnow"],
+        units="days since 1970-01-01 00:00:00",
+        calendar="gregorian",
     )
     OUT = {
         "subZ": OUT["subZ"],

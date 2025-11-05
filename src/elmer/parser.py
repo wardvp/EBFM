@@ -55,7 +55,12 @@ def parse_nodes(
     Returns:
         tuple: Global node IDs, x coordinates, y coordinates, and z coordinates.
     """
-    df = pd.read_csv(nodes_file, sep="\\s+", header=None, dtype={0: int, 2: float, 3: float, 4: float})
+    df = pd.read_csv(
+        nodes_file,
+        sep="\\s+",
+        header=None,
+        dtype={0: int, 2: float, 3: float, 4: float},
+    )
 
     # A valid mesh.nodes file in Elmer should have exactly 5 columns:
     # 1. Global Node ID
@@ -84,7 +89,12 @@ def parse_elements(elements_file: Path) -> tuple[NDArray[np.int_], NDArray[np.in
     Returns:
         tuple: Element IDs and connectivity.
     """
-    df = pd.read_csv(elements_file, sep="\\s+", header=None, dtype={0: int, 3: float, 4: float, 5: float})
+    df = pd.read_csv(
+        elements_file,
+        sep="\\s+",
+        header=None,
+        dtype={0: int, 3: float, 4: float, 5: float},
+    )
 
     # A valid mesh.elements file in Elmer should have at least 2 columns:
     # 1. Global Element ID

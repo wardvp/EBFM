@@ -21,7 +21,7 @@ def setup_logging(log_levels=default_levels, file=None):
 
     if file:
         file_handler = logging.FileHandler(
-            filename=f"{file}" + f".{MPI.COMM_WORLD.rank}" if MPI.COMM_WORLD.size > 1 else ""
+            filename=(f"{file}" + f".{MPI.COMM_WORLD.rank}" if MPI.COMM_WORLD.size > 1 else "")
         )
         file_handler.setFormatter(log_formatter)
         file_handler.setLevel(log_levels["file"])

@@ -1,6 +1,13 @@
 import numpy as np
 
-from ebfm import LOOP_EBM_SHF, LOOP_EBM_GHF, LOOP_EBM_LHF, LOOP_EBM_LWin, LOOP_EBM_LWout, LOOP_EBM_SWin
+from ebfm import (
+    LOOP_EBM_SHF,
+    LOOP_EBM_GHF,
+    LOOP_EBM_LHF,
+    LOOP_EBM_LWin,
+    LOOP_EBM_LWout,
+    LOOP_EBM_SWin,
+)
 from ebfm import LOOP_EBM_SWout, LOOP_EBM_insolation
 
 from coupling import Coupler

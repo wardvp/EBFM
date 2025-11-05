@@ -2,7 +2,14 @@ import coupling
 from pathlib import Path
 import argparse
 
-from ebfm import INIT, LOOP_general_functions, LOOP_climate_forcing, LOOP_EBM, LOOP_SNOW, LOOP_mass_balance
+from ebfm import (
+    INIT,
+    LOOP_general_functions,
+    LOOP_climate_forcing,
+    LOOP_EBM,
+    LOOP_SNOW,
+    LOOP_mass_balance,
+)
 from ebfm import LOOP_write_to_file, FINAL_create_restart_file
 from ebfm.grid import GridInputType
 
@@ -30,17 +37,27 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--couple-to-elmer-ice", action="store_true", help="Enable coupling with Elmer/Ice models via YAC"
-    )
-
-    parser.add_argument("--couple-to-icon-atmo", action="store_true", help="Enable coupling with ICON via YAC")
-
-    parser.add_argument(
-        "--coupler-config", type=Path, help="Path to the coupling configuration file (YAC coupler_config.yaml)."
+        "--couple-to-elmer-ice",
+        action="store_true",
+        help="Enable coupling with Elmer/Ice models via YAC",
     )
 
     parser.add_argument(
-        "--elmer-mesh", type=Path, help="Path to the Elmer mesh file. Either --elmer-mesh or --matlab-mesh is required."
+        "--couple-to-icon-atmo",
+        action="store_true",
+        help="Enable coupling with ICON via YAC",
+    )
+
+    parser.add_argument(
+        "--coupler-config",
+        type=Path,
+        help="Path to the coupling configuration file (YAC coupler_config.yaml).",
+    )
+
+    parser.add_argument(
+        "--elmer-mesh",
+        type=Path,
+        help="Path to the Elmer mesh file. Either --elmer-mesh or --matlab-mesh is required.",
     )
 
     parser.add_argument(
@@ -52,7 +69,8 @@ def main():
     parser.add_argument(
         "--netcdf-mesh",
         type=Path,
-        help="Path to the NetCDF mesh file. Optional if using --elmer-mesh. If --netcdf-mesh is provided elevations will be read from the given NetCDF mesh file.",
+        help="Path to the NetCDF mesh file. Optional if using --elmer-mesh."
+        " If --netcdf-mesh is provided elevations will be read from the given NetCDF mesh file.",
     )
 
     parser.add_argument(
@@ -65,13 +83,14 @@ def main():
         "--use-part",
         type=int,
         default=MPI.COMM_WORLD.rank + 1,
-        help="If using a partitioned Elmer mesh, allows to specify which partition ID to use for this run. If not provided, the MPI rank + 1 will be used as partition ID.",
+        help="If using a partitioned Elmer mesh, allows to specify which partition ID to use for this run. "
+        "If not provided, the MPI rank + 1 will be used as partition ID.",
     )
 
     args = parser.parse_args()
 
-    logger.info(f"Done parsing command line arguments.")
-    logger.debug(f"Parsed the following command line arguments:")
+    logger.info("Done parsing command line arguments.")
+    logger.debug("Parsed the following command line arguments:")
     for arg, val in vars(args).items():
         logger.debug(f"  {arg}: {val}")
 

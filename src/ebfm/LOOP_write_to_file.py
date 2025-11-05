@@ -162,7 +162,12 @@ def main(OUTFILE, io, OUT, grid, t, time, C):
                         zlib=True,
                         complevel=4,
                         fill_value=-9999.0,  # Fill missing values
-                        chunksizes=(1, grid["x_2D"].shape[0], grid["x_2D"].shape[1], grid["nl"]),
+                        chunksizes=(
+                            1,
+                            grid["x_2D"].shape[0],
+                            grid["x_2D"].shape[1],
+                            grid["nl"],
+                        ),
                     )
                 else:
                     # Define variable as 3D: (time, y, x)
