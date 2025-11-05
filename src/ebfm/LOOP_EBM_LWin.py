@@ -1,6 +1,3 @@
-import numpy as np
-
-
 def main(C, IN):
     """
     Computes incoming longwave radiation (LWin) based on atmospheric emissivity.

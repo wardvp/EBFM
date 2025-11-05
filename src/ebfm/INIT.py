@@ -1,6 +1,5 @@
 import os
 from datetime import datetime
-from enum import Enum
 from argparse import Namespace
 from typing import Any
 import numpy as np
@@ -14,7 +13,6 @@ from reader import read_elmer_mesh, read_dem
 
 from elmer.mesh import Mesh
 from ebfm.grid import GridInputType
-from mpi4py import MPI
 
 import logging
 

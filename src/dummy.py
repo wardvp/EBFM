@@ -17,9 +17,6 @@ from mpi4py import MPI
 from utils import setup_logging
 import logging
 
-from typing import NamedTuple
-
-
 log_levels = {
     "file": logging.DEBUG,  # log level for logging to file
     0: logging.INFO,  # log level for rank 0

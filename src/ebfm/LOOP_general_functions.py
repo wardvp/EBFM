@@ -1,6 +1,4 @@
-from datetime import datetime, timedelta
-
-from netCDF4 import date2num
+from datetime import timedelta
 
 
 def print_time(t, time):

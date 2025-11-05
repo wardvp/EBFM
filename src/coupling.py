@@ -1,9 +1,8 @@
 import yac
 from pathlib import Path
-import pyproj
 import numpy as np
 from collections import namedtuple
-from typing import List, Dict
+from typing import Dict
 
 from elmer.mesh import Mesh as Grid  # for now use an alias
 

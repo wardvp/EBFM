@@ -1,6 +1,3 @@
-import numpy as np
-
-
 def main(C, Tsurf):
     """
     Calculates the outgoing longwave radiation (LWout) based on blackbody

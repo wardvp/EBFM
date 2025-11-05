@@ -1,4 +1,3 @@
-import datetime
 import os
 import numpy as np
 from netCDF4 import Dataset, date2num
