@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+
 def main(Tsurf, OUT, cond, GHF_k, GHF_C):
     """
     Calculates the subsurface heat flux (GHF) based on effective conductivity
