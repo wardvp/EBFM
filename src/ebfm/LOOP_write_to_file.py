@@ -1,4 +1,3 @@
-import datetime
 import os
 import numpy as np
 from netCDF4 import Dataset, date2num
@@ -39,11 +38,12 @@ def main(OUTFILE, io, OUT, grid, t, time, C):
             ["subT", "K", "sample", "Temperature"],
             ["subS", "mm w.e.", "sample", "Slush water content"],
             ["subW", "mm w.e.", "sample", "Irreducible water"],
-            ["subZ", "m", "sample", "Layer thickness"]
+            ["subZ", "m", "sample", "Layer thickness"],
         ]
 
-        io["varsout"] = [{"varname": v[0], "units": v[1], "type": v[2], "description": v[3]} for v in
-                         OUTFILE["varsout"]]
+        io["varsout"] = [
+            {"varname": v[0], "units": v[1], "type": v[2], "description": v[3]} for v in OUTFILE["varsout"]
+        ]
 
     # Update OUTFILE.TEMP with variables to be stored
     for entry in OUTFILE["varsout"]:
@@ -63,7 +63,6 @@ def main(OUTFILE, io, OUT, grid, t, time, C):
             OUTFILE["TEMP"][varname] += temp_long / io["freqout"]
         elif var_type == "sum":
             OUTFILE["TEMP"][varname] += temp_long
-
 
     def save_binary_files():
         """
@@ -105,15 +104,9 @@ def main(OUTFILE, io, OUT, grid, t, time, C):
             for file in io["fid"].values():
                 file.close()
 
+            # TODO: WORK IN PROGRESS
             # Prepare the runinfo dictionary
-            runinfo = {
-                "grid": grid,
-                "time": time,
-                "IOout": io,
-                "Cout": C
-            }
-
-            ################ WORK IN PROGRESS ###############
+            # runinfo = {"grid": grid, "time": time, "IOout": io, "Cout": C}
 
         return True
 
@@ -167,7 +160,12 @@ def main(OUTFILE, io, OUT, grid, t, time, C):
                         zlib=True,
                         complevel=4,
                         fill_value=-9999.0,  # Fill missing values
-                        chunksizes=(1, grid["x_2D"].shape[0], grid["x_2D"].shape[1], grid["nl"]),
+                        chunksizes=(
+                            1,
+                            grid["x_2D"].shape[0],
+                            grid["x_2D"].shape[1],
+                            grid["nl"],
+                        ),
                     )
                 else:
                     # Define variable as 3D: (time, y, x)
@@ -186,9 +184,7 @@ def main(OUTFILE, io, OUT, grid, t, time, C):
                 nc_var.description = var_desc
 
             # Define a time variable to track simulation steps
-            nc_time = io["nc_file"].createVariable(
-                "time", np.float64, ("time",), zlib=True, fill_value=-9999.0
-            )
+            nc_time = io["nc_file"].createVariable("time", np.float64, ("time",), zlib=True, fill_value=-9999.0)
             nc_time.units = time_units
             nc_time.calendar = time_calendar
             nc_time.description = "Time at which data is recorded, in days since 1970-01-01 00:00:00"
@@ -212,9 +208,7 @@ def main(OUTFILE, io, OUT, grid, t, time, C):
                 if varname.startswith("sub"):
                     var_3D = np.full((grid["x_2D"].size, grid["nl"]), -9999.0)
                     var_3D[grid["ind"], :] = var_1D
-                    var_4D = var_3D.reshape(-1, grid["nl"]).reshape(
-                        *grid["x_2D"].shape, grid["nl"]
-                    )
+                    var_4D = var_3D.reshape(-1, grid["nl"]).reshape(*grid["x_2D"].shape, grid["nl"])
                     io["nc_file"][varname][time_index, :, :, :] = var_4D
                 else:
                     var_2D = np.full(grid["x_2D"].shape, -9999.0)

@@ -1,11 +1,8 @@
-import numpy as np
-
-
 def main(C, IN):
     """
     Computes incoming longwave radiation (LWin) based on atmospheric emissivity.
     SOURCE: Konzelmann et al. (1994)
-    
+
     Parameters:
         C (dict): Constants including coefficients for emissivity and Stefan-Boltzmann constant.
             - C["b"]: Coefficient for clear-sky emissivity.

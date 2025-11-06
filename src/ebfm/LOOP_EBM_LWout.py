@@ -1,6 +1,3 @@
-import numpy as np
-
-
 def main(C, Tsurf):
     """
     Calculates the outgoing longwave radiation (LWout) based on blackbody
@@ -17,5 +14,5 @@ def main(C, Tsurf):
     ###########################################################
     # Blackbody Emission of Thermal Radiation
     ###########################################################
-    LWout = C["boltz"] * Tsurf ** 4
+    LWout = C["boltz"] * Tsurf**4
     return LWout
