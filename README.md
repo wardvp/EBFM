@@ -173,6 +173,46 @@ make: *** [Makefile:48: elmer_grid.o] Error 1
 
 *Solution:* `sudo apt-get install libproj-dev`
 
+### `setup_venv.sh` cannot install YAC
+
+Note: This error might occur if you are using YAC-version 3.9.3, or newer.
+
+*Problem:*
+```sh
+Processing /home/user/yac/build/python
+  Installing build dependencies ... done
+  Getting requirements to build wheel ... error
+  error: subprocess-exited-with-error
+  
+  × Getting requirements to build wheel did not run successfully.
+  │ exit code: 1
+  ╰─> [23 lines of output]
+      Traceback (most recent call last):
+      ...
+      Exception: The environment variables `LDADD` or `LIBS` are not set. Please set them to the appropriate values (as specified in the Makefile) or run `make install`.
+      [end of output]
+  
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+error: subprocess-exited-with-error
+
+× Getting requirements to build wheel did not run successfully.
+│ exit code: 1
+╰─> See above for output.
+
+note: This error originates from a subprocess, and is likely not a problem with pip.
+```
+
+*Solution:*
+
+Please export `LIBS` and `LDADD` according to your YAC-installation. Please refer to the [YAC-documentation](https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html) (Linking with YAC) for details.
+
+If you are using `pkg-config`, this might look like this:
+
+```sh
+export LIBS="$LIBS $(pkg-config --libs-only-L yac-mci)"
+export LDADD="$LDADD $(pkg-config --libs-only-l yac-mci)"
+```
+
 # Developer notes
 
 ## pre-commit
