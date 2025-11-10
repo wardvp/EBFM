@@ -18,12 +18,12 @@ dependencies = [
     "pandas-stubs >= 2.0",
     "pathlib",
     "pyproj",
-    "scipy"
+    "scipy",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pre-commit >= 4.0"
+    "pre-commit >= 4.0",
 ]
 
 [project.scripts]
