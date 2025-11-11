@@ -36,7 +36,7 @@ def init_config(args: Namespace):
     # ---------------------------------------------------------------------
     time = {}
     time['ts'] = datetime.strptime('1-Jan-1979 00:00', '%d-%b-%Y %H:%M')  # Start date and time
-    time['te'] = datetime.strptime('2-Jan-1979 09:00', '%d-%b-%Y %H:%M')  # End date and time
+    time['te'] = datetime.strptime('2-Jan-1979 00:00', '%d-%b-%Y %H:%M')  # End date and time
     time['dt'] = 0.125  # Time step in days
 
     # Calculate the number of time steps
