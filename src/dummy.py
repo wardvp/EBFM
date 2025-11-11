@@ -191,7 +191,8 @@ def main():
         if not grid["is_partitioned"] and not coupler.has_coupling:
             if grid["input_type"] is GridInputType.MATLAB:
                 gridtype = "structured"
-                #           if grid['input_type'] is GridInputType.MATLAB or grid['input_type'] is GridInputType.ELMER_XIOS:
+                #           if grid['input_type'] is GridInputType.MATLAB or
+                #                grid['input_type'] is GridInputType.ELMER_XIOS:
                 #               ...
                 #           if grid['input_type'] is GridInputType.MATLAB:
                 #               assert (grid['input_type'] is GridInputType.MATLAB), \
