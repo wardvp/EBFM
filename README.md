@@ -12,27 +12,26 @@ Using YAC this model can be coupled to other models.
 
 ## Preparations
 
-### Create Python virtual environment
+### Create virtual environment
 
-First, set the path to your virtual environment:
+Set the path to your virtual environment:
 
 ```sh
 export VENV=/path/to/your/environment/.venv
 ```
 
-Please create a virtual environment and install the packages listed in the `requirements.txt` in the following way:
+Create a virtual environment and install the dependencies specified in `pyproject.toml` using the following commands:
+
 ```sh
-python -m venv $VENV
+python3 -m venv $VENV
 source $VENV/bin/activate
-pip install -r requirements.txt
+pip3 install uv
+uv pip3 install -r pyproject.toml
 ```
 
-### Installation with YAC
-
-To run EBFM using YAC as a coupler, it is recommended to install YAC with the Python bindings. 
-When doing so, set the installation prefix to your virtual environment (`--prefix=$VENV`).
+Note: If you intend to install EBFM with coupling features, it is recommended to install YAC with the Python bindings. 
+In your configuration step, set the installation prefix to your virtual environment and enable Python bindings (`--prefix=$VENV` `--enable-python-bindings`).
 For detailed instructions, see the YAC documentation on [Python bindings](https://yac.gitlab-pages.dkrz.de/YAC-dev/d7/d9e/pythonbindings.html).
-
 
 ## Running
 
@@ -191,46 +190,6 @@ make: *** [Makefile:48: elmer_grid.o] Error 1
 ```
 
 *Solution:* `sudo apt-get install libproj-dev`
-
-### `setup_venv.sh` cannot install YAC
-
-Note: This error might occur if you are using YAC-version 3.9.3, or newer.
-
-*Problem:*
-```sh
-Processing /home/user/yac/build/python
-  Installing build dependencies ... done
-  Getting requirements to build wheel ... error
-  error: subprocess-exited-with-error
-  
-  × Getting requirements to build wheel did not run successfully.
-  │ exit code: 1
-  ╰─> [23 lines of output]
-      Traceback (most recent call last):
-      ...
-      Exception: The environment variables `LDADD` or `LIBS` are not set. Please set them to the appropriate values (as specified in the Makefile) or run `make install`.
-      [end of output]
-  
-  note: This error originates from a subprocess, and is likely not a problem with pip.
-error: subprocess-exited-with-error
-
-× Getting requirements to build wheel did not run successfully.
-│ exit code: 1
-╰─> See above for output.
-
-note: This error originates from a subprocess, and is likely not a problem with pip.
-```
-
-*Solution:*
-
-Please export `LIBS` and `LDADD` according to your YAC-installation. Please refer to the [YAC-documentation](https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html) (Linking with YAC) for details.
-
-If you are using `pkg-config`, this might look like this:
-
-```sh
-export LIBS="$LIBS $(pkg-config --libs-only-L yac-mci)"
-export LDADD="$LDADD $(pkg-config --libs-only-l yac-mci)"
-```
 
 # Developer notes
 
