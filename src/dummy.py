@@ -50,19 +50,22 @@ def add_coupling_arguments(parser: argparse.ArgumentParser):
     """
 
     # Note: If you add arguments to this function, also update check_coupling_features.
-    parser.add_argument(
+
+    coupling_group = parser.add_argument_group("coupling (requires YAC)")
+
+    coupling_group.add_argument(
         "--couple-to-elmer-ice",
         action="store_true",
         help="Enable coupling with Elmer/Ice models via YAC",
     )
 
-    parser.add_argument(
+    coupling_group.add_argument(
         "--couple-to-icon-atmo",
         action="store_true",
         help="Enable coupling with ICON via YAC",
     )
 
-    parser.add_argument(
+    coupling_group.add_argument(
         "--coupler-config",
         type=Path,
         help="Path to the coupling configuration file (YAC coupler_config.yaml).",
@@ -96,42 +99,46 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
+        "--version",
+        action="store_true",
+        help="Show the EBFM version and exit.",
+    )
+
+    input_group = parser.add_argument_group("input mesh types")
+
+    input_group.add_argument(
         "--elmer-mesh",
         type=Path,
         help="Path to the Elmer mesh file. Either --elmer-mesh or --matlab-mesh is required.",
     )
 
-    parser.add_argument(
+    input_group.add_argument(
         "--matlab-mesh",
         type=Path,
         help="Path to the MATLAB mesh file. Either --elmer-mesh or --matlab-mesh is required.",
     )
 
-    parser.add_argument(
+    input_group.add_argument(
         "--netcdf-mesh",
         type=Path,
         help="Path to the NetCDF mesh file. Optional if using --elmer-mesh."
         " If --netcdf-mesh is provided elevations will be read from the given NetCDF mesh file.",
     )
 
-    parser.add_argument(
+    parallel_group = parser.add_argument_group("parallel runs and distributed meshes")
+
+    parallel_group.add_argument(
         "--is-partitioned-elmer-mesh",
         action="store_true",
         help="Indicate if the provided Elmer mesh is partitioned for parallel runs.",
     )
 
-    parser.add_argument(
+    parallel_group.add_argument(
         "--use-part",
         type=int,
         default=MPI.COMM_WORLD.rank + 1,
         help="If using a partitioned Elmer mesh, allows to specify which partition ID to use for this run. "
         "If not provided, the MPI rank + 1 will be used as partition ID.",
-    )
-
-    parser.add_argument(
-        "--version",
-        action="store_true",
-        help="Show the EBFM version and exit.",
     )
 
     # Add args for features requiring 'import coupling'
