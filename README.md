@@ -30,7 +30,7 @@ pip install uv
 uv pip install -r pyproject.toml
 ```
 
-If you want to know more about virtual enviornments, please refer to the [Python documentation](https://docs.python.org/3/library/venv.html). \
+If you want to know more about virtual environments, please refer to the [Python documentation](https://docs.python.org/3/library/venv.html). \
 If you intend to develop EBFM, please take a look at the [developer notes](https://github.com/wardvp/EBFM/edit/matthias-ibach-patch-1/README.md?pr=%2Fwardvp%2FEBFM%2Fpull%2F23#developer-notes) further down in the `README`.
 
 ### Create virtual environment with coupling features
