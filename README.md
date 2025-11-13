@@ -38,7 +38,7 @@ If you intend to develop EBFM, please take a look at the [developer notes](https
 You can then install EBFM directly into you virtual environment by running the following command:
 
 ```sh
-pip3 install "EBFM @ git+https://github.com/wardvp/EBFM.git"
+pip3 install EBFM
 ```
 
 This will install the basic version of EBFM without coupling.
@@ -60,7 +60,7 @@ The procedure should like this:
 python3 -m venv $VENV
 # configure and install YAC with --prefix=$VENV and --enable-python-bindings
 source $VENV/bin/activate
-pip3 install "EBFM[cpl] @ git+https://github.com/wardvp/EBFM.git"
+pip3 install EBFM[cpl]
 ```
 
 Check if your virtual environment is activated. You should see the name within parentheses just before your command prompt, in this case it should say `(.venv)`. 
@@ -72,7 +72,7 @@ For detailed instructions on how to install YAC properly, see the YAC documentat
 You can then install EBFM with coupling features directly into you virtual environment by running the following command:
 
 ```sh
-pip3 install "EBFM[cpl] @ git+https://github.com/wardvp/EBFM.git"
+pip3 install EBFM[cpl]
 ```
 
 This will include the optional dependencies `[cpl]` needed for coupling, such as `yac`.
@@ -243,7 +243,7 @@ install `pre-commit`).
 To concatenate multiple optional dependencies, please run
 
 ```sh
-pip3 install "EBFM[dev,cpl] @ git+https://github.com/wardvp/EBFM.git"
+pip3 install EBFM[dev,cpl]
 ```
 
 ### pre-commit
