@@ -17,10 +17,11 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
+      - name: Setup MPI
+        uses: mpi4py/setup-mpi@v1
       - name: Create virtual environment
         run: |
           python3 -m venv .venv
-          source .venv/bin/activate
       - name: Install EBFM directly
         run: |
           source .venv/bin/activate
