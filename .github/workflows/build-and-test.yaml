@@ -1,1 +1,36 @@
-# Empty file - TODO: CI pipline for simple testing
+# SPDX-FileCopyrightText: 2025 EBFM Authors
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+name: Build and test 
+on:
+  - push
+  - pull_request
+
+jobs: 
+  build-and-test: 
+    runs-on: ubuntu-latest 
+    steps:
+      - name: Checkout EBFM repository
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Create virtual environment
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+      - name: Install EBFM directly
+        run: |
+          source .venv/bin/activate
+          pip install "EBFM @ git+https://github.com/wardvp/EBFM.git"
+      - name: Check EBFM version
+        run: |
+          source .venv/bin/activate
+          ebfm --version
+      - name: Run example
+        run: |
+          source .venv/bin/activate
+          ebfm --matlab-mesh examples/dem_and_mask.mat
+
