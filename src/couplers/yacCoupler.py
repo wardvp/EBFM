@@ -6,15 +6,10 @@ import yac
 from pathlib import Path
 import numpy as np
 from collections import namedtuple
-from typing import Dict
-
-from elmer.mesh import Mesh as Grid  # for now use an alias
-
-# from ebfm.geometry import Grid  # TODO: consider introducing a new data structure native to EBFM?
 
 import logging
 
-from coupler import Coupler
+from coupler import Coupler, Grid, Dict, EBFMCouplingConfig
 
 logger = logging.getLogger(__name__)
 
@@ -52,12 +47,22 @@ class YACCoupler(Coupler):
     source_fields: Dict[str, yac.Field] = {}
     target_fields: Dict[str, yac.Field] = {}
 
-    def __init__(self, component_name: str, coupler_config: Path):
+    def __init__(self, component_name: str, coupler_config: Path, component_coupling_config: EBFMCouplingConfig):
+        """Create interface to the coupler and register component
+
+        @param[in] component_name name of this component in the coupler configuration
+        @param[in] path to global Coupler configuration file
+        @param[in] component_coupling_config dictionary with coupling configuration for this component
+
+        @returns Coupler object
+        """
         logger.debug(f"YAC version is {yac.version()}")
         self.interface = yac.YAC()
         self.component_name = component_name
         self.interface.read_config_yaml(str(coupler_config))
         self.component = self.interface.def_comp(component_name)
+        self.couple_to_icon_atmo = component_coupling_config.couple_with_icon_atmo
+        self.couple_to_elmer_ice = component_coupling_config.couple_with_elmer_ice
 
     def add_grid(self, grid_name, grid):
         """
@@ -367,52 +372,21 @@ class YACCoupler(Coupler):
 
         return received_data
 
+    def setup(self, grid: Grid, time: Dict[str, float]):
+        """Setup the coupling interface
+
+        Performs initialization operations after init and before entering the
+        time loop
+
+        @param[in] grid Grid used by EBFM where coupling happens
+        @param[in] time dictionary with time parameters, e.g. {'tn': 12, 'dt': 0.125}
+        """
+        grid_name = "ebfm_grid"  # TODO: get from ebfm_coupling_config?
+
+        self.add_grid(grid_name, grid)
+        self.add_couples(time)
+
     def finalize(self):
         """Finalize the coupling interface"""
         del self.interface
-
-
-def init(
-    coupler_config: Path, ebfm_coupling_config: Path, couple_with_icon_atmo: bool, couple_with_elmer_ice: bool
-) -> Coupler:
-    """Create interface to the coupler and register component
-
-    @param[in] path to global Coupler configuration file
-    @param[in] ebfm_coupling_config path to local configuration of coupling for EBFM
-    @param[in] couple_with_icon_atmo whether to couple with ICON atmosphere
-    @param[in] couple_with_elmer_ice whether to couple with Elmer/Ice
-
-    @returns Coupler object
-    """
-
-    # TODO: use ebfm_coupling_config for EBFM specific configuration?
-
-    component_name = "ebfm"  # TODO: get from ebfm_coupling_config?
-    coupler = YACCoupler(component_name, coupler_config)
-
-    coupler.couple_to_icon_atmo = couple_with_icon_atmo
-    coupler.couple_to_elmer_ice = couple_with_elmer_ice
-
-    # TODO: yac_cget_comp_comm(comp_id, elmer_comm) needed?
-
-    return coupler
-
-
-def setup(coupler: Coupler, grid: Grid, time: Dict[str, float]):
-    """Performs initialization operations after init and before enterint the
-    time loop
-
-    @param[in] coupler Coupler object with interface to YAC
-    @param[in] grid Grid used by EBFM where coupling happens
-    @param[in] time dictionary with time parameters, e.g. {'tn': 12, 'dt': 0.125}
-    """
-    grid_name = "ebfm_grid"  # TODO: get from ebfm_coupling_config?
-
-    coupler.add_grid(grid_name, grid)
-    coupler.add_couples(time)
-
-
-def finalize(coupler: Coupler):
-    logger.debug("Finalizing coupling...")
-    coupler.finalize()
-    logger.info("Coupling finalized.")
+        logger.info("YAC Coupling finalized.")
