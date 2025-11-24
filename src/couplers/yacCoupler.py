@@ -61,8 +61,8 @@ class YACCoupler(Coupler):
         self.component_name = component_name
         self.interface.read_config_yaml(str(coupler_config))
         self.component = self.interface.def_comp(component_name)
-        self.couple_to_icon_atmo = component_coupling_config.couple_with_icon_atmo
-        self.couple_to_elmer_ice = component_coupling_config.couple_with_elmer_ice
+        self.couple_to_icon_atmo = component_coupling_config.couple_to_icon_atmo
+        self.couple_to_elmer_ice = component_coupling_config.couple_to_elmer_ice
 
     def add_grid(self, grid_name, grid):
         """

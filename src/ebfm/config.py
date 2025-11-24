@@ -16,5 +16,5 @@ class EBFMCouplingConfig:
     Keep this class intentionally small; add fields later as needed.
     """
 
-    couple_with_icon_atmo: bool
-    couple_with_elmer_ice: bool
+    couple_to_icon_atmo: bool
+    couple_to_elmer_ice: bool

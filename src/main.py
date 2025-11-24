@@ -184,8 +184,8 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
 
     # TODO consider introducing an ebfm_adapter_config.yaml to be parsed alternatively/additionally to command line args
     ebfm_coupling_config = EBFMCouplingConfig(
-        couple_with_icon_atmo=args.couple_to_icon_atmo,
-        couple_with_elmer_ice=args.couple_to_elmer_ice,
+        couple_to_icon_atmo=args.couple_to_icon_atmo,
+        couple_to_elmer_ice=args.couple_to_elmer_ice,
     )
 
     if ebfm_coupling_config.couple_to_icon_atmo or ebfm_coupling_config.couple_to_elmer_ice:
