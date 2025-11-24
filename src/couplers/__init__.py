@@ -2,4 +2,4 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-from base import Coupler  # noqa: F401
+from couplers.base import Coupler  # noqa: F401
