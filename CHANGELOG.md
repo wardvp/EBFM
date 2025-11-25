@@ -6,6 +6,8 @@ SPDX-License-Identifier: CC-BY-4.0
 
 # develop
 
+* Use `setuptools_scm` as backend for `--version` information. See https://github.com/EBFMorg/EBFM/pull/46.
+
 # v0.1.0
 
 * Initial release
