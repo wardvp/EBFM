@@ -175,12 +175,12 @@ def init_grid(grid, io, config: GridConfig):
             mesh: Mesh = read_elmer_mesh(mesh_root=config.mesh_file)
 
         grid["x"], grid["y"] = mesh.x_vertices, mesh.y_vertices
-        if args.netcdf_mesh:
-            grid["z"] = read_dem(args.netcdf_mesh, grid["x"], grid["y"])
+        if config.grid_type is GridInputType.CUSTOM:
+            grid["z"] = read_dem(config.dem_file, grid["x"], grid["y"])
             grid["lat"] = np.zeros_like(grid["x"]) + 75  # test values!
             grid["lon"] = np.zeros_like(grid["x"]) + 320  # test values!
-        if args.netcdf_mesh_unstructured:
-            grid = read_dem_xios(args.netcdf_mesh_unstructured, grid)
+        if config.grid_type is GridInputType.XIOS_CUSTOM:
+            grid = read_dem_xios(config.dem_file, grid)
         grid["mask"] = np.ones_like(grid["x"])  # treats every grid cell as glacier
         grid["gpsum"] = np.sum(grid["mask"] == 1)  # number of modelled grid cells
         grid["slope_x"] = np.zeros_like(grid["x"])  # test values!
@@ -314,7 +314,7 @@ def init_grid(grid, io, config: GridConfig):
         grid["slope_gamma"][(grid["slope_x"] < 0) & (grid["slope_y"] == 0)] = -np.pi / 2
         grid["slope_gamma"] = -grid["slope_gamma"]
     elif grid["input_type"] is GridInputType.ELMER_XIOS:
-        grid = read_elmer_xios_grid(grid=grid, gridfile=args.elmer_xios_mesh)
+        grid = read_elmer_xios_grid(grid=grid, gridfile=config.dem_file)
         grid["gpsum"] = grid["z"].shape[0]
         grid["mask"] = (grid["h"] > 1.0) * 1.0
         grid["x"] = np.zeros_like(grid["z"])
