@@ -16,6 +16,7 @@ from ebfm import (
 )
 from ebfm import LOOP_write_to_file, FINAL_create_restart_file
 from ebfm.grid import GridInputType
+from ebfm.config import EBFMCouplingConfig
 
 from mpi4py import MPI
 from utils import setup_logging
@@ -167,6 +168,13 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
 
     logger.info(f"Starting EBFM version {ebfm.get_version()}...")
 
+    # TODO consider introducing an ebfm_adapter_config.yaml to be parsed alternatively/additionally to command line args
+    ebfm_coupling_config = EBFMCouplingConfig(
+        component_name="ebfm",
+        couple_to_icon_atmo=args.couple_to_icon_atmo,
+        couple_to_elmer_ice=args.couple_to_elmer_ice,
+    )
+
     logger.info("Done parsing command line arguments.")
     logger.debug("Parsed the following command line arguments:")
     for arg, val in vars(args).items():
@@ -179,18 +187,16 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
 
     OUT, IN, OUTFILE = INIT.init_initial_conditions(C, grid, io, time2)
 
-    if args.couple_to_icon_atmo or args.couple_to_elmer_ice:
+    if ebfm_coupling_config.defines_coupling():
         # TODO: introduce minimal stub implementation
         # TODO consider introducing an ebfm_adapter_config.yaml
         coupler = coupling.init(
             coupler_config=args.coupler_config,
-            ebfm_coupling_config=Path("dummies") / "EBFM" / "ebfm-config.yaml",
-            couple_with_icon_atmo=args.couple_to_icon_atmo,
-            couple_with_elmer_ice=args.couple_to_elmer_ice,
+            component_coupling_config=ebfm_coupling_config,
         )
         coupling.setup(coupler, grid["mesh"], time2)
     else:
-        coupler = NoCoupler("ebfm")
+        coupler = NoCoupler(component_name=ebfm_coupling_config.component_name)
 
     # Time-loop
     logger.info("Entering time loop...")

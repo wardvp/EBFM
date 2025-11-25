@@ -9,6 +9,7 @@ from collections import namedtuple
 from typing import Dict
 
 from elmer.mesh import Mesh as Grid  # for now use an alias
+from ebfm.config import EBFMCouplingConfig
 
 # from ebfm.geometry import Grid  # TODO: consider introducing a new data structure native to EBFM?
 
@@ -372,26 +373,22 @@ class YACCoupler(Coupler):
         del self.interface
 
 
-def init(
-    coupler_config: Path, ebfm_coupling_config: Path, couple_with_icon_atmo: bool, couple_with_elmer_ice: bool
-) -> Coupler:
+def init(coupler_config: Path, ebfm_coupling_config: EBFMCouplingConfig) -> Coupler:
     """Create interface to the coupler and register component
 
     @param[in] path to global Coupler configuration file
-    @param[in] ebfm_coupling_config path to local configuration of coupling for EBFM
-    @param[in] couple_with_icon_atmo whether to couple with ICON atmosphere
-    @param[in] couple_with_elmer_ice whether to couple with Elmer/Ice
+    @param[in] ebfm_coupling_config local configuration of coupling for EBFM
 
     @returns Coupler object
     """
 
     # TODO: use ebfm_coupling_config for EBFM specific configuration?
 
-    component_name = "ebfm"  # TODO: get from ebfm_coupling_config?
+    component_name = ebfm_coupling_config.component_name
     coupler = YACCoupler(component_name, coupler_config)
 
-    coupler.couple_to_icon_atmo = couple_with_icon_atmo
-    coupler.couple_to_elmer_ice = couple_with_elmer_ice
+    coupler.couple_to_icon_atmo = ebfm_coupling_config.couple_with_icon_atmo
+    coupler.couple_to_elmer_ice = ebfm_coupling_config.couple_with_elmer_ice
 
     # TODO: yac_cget_comp_comm(comp_id, elmer_comm) needed?
 
