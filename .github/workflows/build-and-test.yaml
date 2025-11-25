@@ -35,6 +35,7 @@ jobs:
         run: |
           source .venv/bin/activate
           git fetch --tags  # required for --version to work correctly since actions/checkout@v3 uses fetch-depth: 1
+          git log --oneline -5
           ebfm --version
       - name: Run example
         run: |
