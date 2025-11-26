@@ -164,7 +164,11 @@ def init_grid(grid, io, config: GridConfig):
     grid["is_partitioned"] = config.is_partitioned
 
     # Read grid from Elmer, elevations from BedMachine
-    if config.grid_type is GridInputType.CUSTOM or config.grid_type is GridInputType.XIOS_CUSTOM:
+    if config.dem_file:
+        assert config.grid_type in {
+            GridInputType.CUSTOM,
+            GridInputType.XIOS_CUSTOM,
+        }, "DEM file can only be specified for CUSTOM or XIOS_CUSTOM grid types."
         if config.is_partitioned:
             mesh: Mesh = read_elmer_mesh(
                 mesh_root=config.mesh_file,
