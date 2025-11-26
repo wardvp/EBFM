@@ -59,7 +59,7 @@ class GridConfig:
 
     grid_type: GridInputType  # Name of the grid used in coupling
     mesh_file: Path  # Path to the grid file
-    dem_file: Path  # Path to the DEM file (only relevant for CUSTOM grid type)
+    dem_file: Path = None  # Path to the DEM file (only relevant for CUSTOM grid type)
     is_partitioned: bool  # Whether the grid is partitioned
     partition_id: int  # Partition ID (only relevant if is_partitioned is True)
 
