@@ -156,6 +156,8 @@ def main(OUTFILE, io, OUT, grid, t, time, C):
             # Define standard output variables
             for entry in OUTFILE["varsout"]:
                 varname = entry[0]
+                var_units = entry[1]
+                var_desc = entry[3]
 
                 dimensions: tuple
                 chunksizes: tuple
@@ -191,8 +193,8 @@ def main(OUTFILE, io, OUT, grid, t, time, C):
                     chunksizes=chunksizes,
                 )
                 # Assign metadata
-                nc_var.units = entry[1]
-                nc_var.description = entry[3]
+                nc_var.units = var_units
+                nc_var.description = var_desc
 
             # Define a time variable to track simulation steps
             nc_time = io["nc_file"].createVariable("time", np.float64, ("time",), zlib=True, fill_value=-9999.0)
