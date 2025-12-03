@@ -219,7 +219,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
         assert grid_config.grid_type is GridInputType.MATLAB, "Shading routine only implemented for MATLAB input grids."
         assert coupling_config.defines_coupling() is False, "Shading routine not implemented for coupled runs."
 
-    OUT, IN, OUTFILE = INIT.init_initial_conditions(C, grid, io, time)
+    OUT, IN, OUTFILE = INIT.init_initial_conditions(grid, io, time)
 
     if coupling_config.defines_coupling():
         # TODO: introduce minimal stub implementation
@@ -273,7 +273,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
         OUT = LOOP_SNOW.main(C, OUT, IN, time["dt"], grid, phys)
 
         # Calculate surface mass balance
-        OUT = LOOP_mass_balance.main(OUT, IN, C)
+        OUT = LOOP_mass_balance.main(OUT, IN)
 
         if coupler.couple_to_elmer_ice:
             # Exchange data with Elmer

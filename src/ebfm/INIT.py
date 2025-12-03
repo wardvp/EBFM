@@ -18,6 +18,8 @@ from ebfm.config import GridConfig
 from ebfm.grid import GridInputType
 
 from ebfm.constants import DAYS_PER_YEAR, SECONDS_PER_DAY
+from ebfm.constants.materials import Ice, FreshSnow
+
 
 import logging
 
@@ -97,9 +99,6 @@ def init_constants():
     # ---------------------------------------------------------------------
     # Energy balance model
     # ---------------------------------------------------------------------
-    C["alb_fresh"] = 0.83  # Albedo fresh snow (fraction)
-    C["alb_ice"] = 0.39  # Albedo ice (fraction)
-    C["alb_firn"] = 0.52  # Albedo firn (fraction)
     C["tstar_wet"] = 15  # Albedo decay time-scale wet snow (days)
     C["tstar_dry"] = 30  # Albedo decay time-scale dry snow (days)
     C["tstar_K"] = 7  # Albedo decay time-scale coefficient
@@ -132,10 +131,6 @@ def init_constants():
     # ---------------------------------------------------------------------
     # Snow model
     # ---------------------------------------------------------------------
-    C["Dfreshsnow"] = 350.0  # Density of fresh snow (kg m-3)
-    C["Dice"] = 900.0  # Density of ice (kg m-3)
-    C["Dfirn"] = 500.0  # Density of firn (kg m-3)
-    C["Dwater"] = 1000.0  # Density of water (kg m-3)
     C["Ec"] = 60000  # Gravitational densification factor
     C["Eg"] = 42400  # Gravitational densification factor
     C["Trunoff"] = 0.001  # Slush runoff time-scale (days)
@@ -348,12 +343,11 @@ def read_MATLAB_grid(gridfile: Path):
     return input_data
 
 
-def init_initial_conditions(C, grid, io, time):
+def init_initial_conditions(grid, io, time):
     """
     Sets the model's initial conditions at the start of the simulation.
 
     Parameters:
-        C (dict): Dictionary with constants such as `Dice` and `alb_fresh`.
         grid (dict): Dictionary representing the grid, including fields like `gpsum`, `nl`, `max_subZ`, `split`, etc.
         io (dict): Dictionary with I/O settings (e.g. readbootfile, rebootdir, bootfilein, homedir).
 
@@ -403,12 +397,12 @@ def init_initial_conditions(C, grid, io, time):
         OUT["subT"] = np.full((gpsum, nl), 265.0)  # Vertical temperatures (K)
         OUT["subW"] = np.zeros((gpsum, nl))  # Vertical irreducible water content (kg)
         OUT["subS"] = np.zeros((gpsum, nl))  # Vertical slush water content (kg)
-        OUT["subD"] = np.full((gpsum, nl), C["Dice"])  # Vertical densities (kg m-3)
+        OUT["subD"] = np.full((gpsum, nl), Ice.DENSITY)  # Vertical densities (kg m-3)
         OUT["subTmean"] = OUT["subT"]  # Annual mean vertical layer temperature (K)
         OUT["timelastsnow"] = np.full((gpsum,), time["ts"])  # Timestep of last snowfall (days)
         OUT["ys"] = np.full((gpsum,), 500.0)  # Annual snowfall (mm water equivalent)
         OUT["subZ"] = np.full((gpsum, nl), grid["max_subZ"])  # Vertical layer depths (m)
-        OUT["alb_snow"] = np.full((gpsum,), C["alb_fresh"])  # Snow albedo
+        OUT["alb_snow"] = np.full((gpsum,), FreshSnow.ALBEDO)  # Snow albedo
         OUT["snowmass"] = np.zeros((gpsum,))  # Snow mass (m water equivalent)
 
         if grid.get("doubledepth", False):  # Sets layer thicknesses when 'double depth' is active
@@ -433,7 +427,7 @@ def init_initial_conditions(C, grid, io, time):
     OUT["Dfreshsnow"] = np.zeros((gpsum,))  # Fresh snow density (kg m-3)
     OUT["tstar"] = np.zeros((gpsum,))  # Albedo decay timescale (days)
     OUT["runoff_irr_deep_mean"] = np.zeros((gpsum,))  # Runoff irreducible water (m w.e.)
-    OUT["albedo"] = np.full((gpsum,), C["alb_ice"])  # Albedo (fraction)
+    OUT["albedo"] = np.full((gpsum,), Ice.ALBEDO)  # Albedo (fraction)
 
     ######################################################
     # Initialize `IN` (model input variables)
