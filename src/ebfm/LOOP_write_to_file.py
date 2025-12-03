@@ -7,7 +7,7 @@ import numpy as np
 from netCDF4 import Dataset, date2num
 
 
-def main(OUTFILE, io, OUT, grid, t, time, C, gridtype):
+def main(OUTFILE, io, OUT, grid, t, time, C):
     # Specify variables to be written
     if t == 1:
         OUTFILE["varsout"] = [
@@ -114,7 +114,7 @@ def main(OUTFILE, io, OUT, grid, t, time, C, gridtype):
 
         return True
 
-    def save_netCDF_file(gridtype):
+    def save_netCDF_file():
         """
         Save model output stored in OUTFILE to a NetCDF file. Converts 1D data to 2D grids.
 
@@ -141,17 +141,17 @@ def main(OUTFILE, io, OUT, grid, t, time, C, gridtype):
             # Create NetCDF file
             nc_filepath = os.path.join(io["outdir"], "model_output.nc")
             io["nc_file"] = Dataset(nc_filepath, "w", format="NETCDF4")
-            if gridtype == "unstructured":
+            io["nc_file"].createDimension("time", None)  # Unlimited time dimension
+
+            if grid["is_unstructured"]:
                 # Define dimensions
-                io["nc_file"].createDimension("time", None)  # Unlimited time dimension
                 io["nc_file"].createDimension("y", grid["lat"].shape[0])  # 2D grid rows
-                io["nc_file"].createDimension("nl", grid["nl"])  # Vertical layers for `sub` variables
-            elif gridtype == "structured":
+            else:  # structured grid
                 # Define dimensions
-                io["nc_file"].createDimension("time", None)  # Unlimited time dimension
                 io["nc_file"].createDimension("y", grid["x_2D"].shape[0])  # 2D grid rows
                 io["nc_file"].createDimension("x", grid["x_2D"].shape[1])  # 2D grid columns
-                io["nc_file"].createDimension("nl", grid["nl"])  # Vertical layers for `sub` variables
+
+            io["nc_file"].createDimension("nl", grid["nl"])  # Vertical layers for `sub` variables
 
             # Define standard output variables
             for entry in OUTFILE["varsout"]:
@@ -159,54 +159,39 @@ def main(OUTFILE, io, OUT, grid, t, time, C, gridtype):
                 var_units = entry[1]
                 var_desc = entry[3]
 
-                # Check if variable is a `sub` variable
-                if varname.startswith("sub"):
-                    if gridtype == "unstructured":
-                        # Define variable as 3D: (time, y, nl)
-                        nc_var = io["nc_file"].createVariable(
-                            varname,
-                            np.float32,
-                            ("time", "y", "nl"),
-                            zlib=True,
-                            complevel=4,
-                            fill_value=-9999.0,  # Fill missing values
-                            chunksizes=(1, grid["lat"].shape[0], grid["nl"]),
-                        )
-                    elif gridtype == "structured":
-                        # Define variable as 4D: (time, y, x, nl)
-                        nc_var = io["nc_file"].createVariable(
-                            varname,
-                            np.float32,
-                            ("time", "y", "x", "nl"),
-                            zlib=True,
-                            complevel=4,
-                            fill_value=-9999.0,  # Fill missing values
-                            chunksizes=(1, grid["x_2D"].shape[0], grid["x_2D"].shape[1], grid["nl"]),
-                        )
-                else:
-                    if gridtype == "unstructured":
-                        # Define variable as 2D: (time, y)
-                        nc_var = io["nc_file"].createVariable(
-                            varname,
-                            np.float32,
-                            ("time", "y"),
-                            zlib=True,
-                            complevel=4,
-                            fill_value=-9999.0,
-                            chunksizes=(1, grid["lat"].shape[0]),
-                        )
-                    elif gridtype == "structured":
-                        # Define variable as 3D: (time, y, x)
-                        nc_var = io["nc_file"].createVariable(
-                            varname,
-                            np.float32,
-                            ("time", "y", "x"),
-                            zlib=True,
-                            complevel=4,
-                            fill_value=-9999.0,
-                            chunksizes=(1, grid["x_2D"].shape[0], grid["x_2D"].shape[1]),
-                        )
+                dimensions: tuple
+                chunksizes: tuple
 
+                if grid["is_unstructured"]:
+                    # Check if variable is a `sub` variable
+                    if varname.startswith("sub"):
+                        # Define variable as 3D: (time, y, nl)
+                        dimensions = ("time", "y", "nl")
+                        chunksizes = (1, grid["lat"].shape[0], grid["nl"])
+                    else:
+                        # Define variable as 2D: (time, y)
+                        dimensions = ("time", "y")
+                        chunksizes = (1, grid["lat"].shape[0])
+                else:
+                    # Check if variable is a `sub` variable
+                    if varname.startswith("sub"):
+                        # Define variable as 4D: (time, y, x, nl)
+                        dimensions = ("time", "y", "x", "nl")
+                        chunksizes = (1, grid["x_2D"].shape[0], grid["x_2D"].shape[1], grid["nl"])
+                    else:
+                        # Define variable as 3D: (time, y, x)
+                        dimensions = ("time", "y", "x")
+                        chunksizes = (1, grid["x_2D"].shape[0], grid["x_2D"].shape[1])
+
+                nc_var = io["nc_file"].createVariable(
+                    varname=varname,
+                    datatype=np.float32,
+                    dimensions=dimensions,
+                    zlib=True,
+                    complevel=4,
+                    fill_value=-9999.0,  # Fill missing values
+                    chunksizes=chunksizes,
+                )
                 # Assign metadata
                 nc_var.units = var_units
                 nc_var.description = var_desc
@@ -253,7 +238,7 @@ def main(OUTFILE, io, OUT, grid, t, time, C, gridtype):
     if io["output_type"] == 1:
         save_binary_files()
     elif io["output_type"] == 2:
-        save_netCDF_file(gridtype=gridtype)
+        save_netCDF_file()
     else:
         print("Invalid output type. Please choose 1 for binary files or 2 for NetCDF.")
 

@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import os
-from datetime import datetime
 from typing import Any
 import numpy as np
 from numpy import ndarray, dtype
@@ -18,6 +17,8 @@ from elmer.mesh import Mesh
 from ebfm.config import GridConfig
 from ebfm.grid import GridInputType
 
+from ebfm.constants import DAYS_PER_YEAR, SECONDS_PER_DAY
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -25,25 +26,15 @@ logger = logging.getLogger(__name__)
 
 def init_config():
     """
-    Set model parameters, specify grid parameters, model time period, I/O, and physics settings.
-    Returns:
+    Set model parameters, specify grid parameters, I/O, and physics settings.
+
+    @param[in] time_config Time configuration object.
+
+    @returns:
         grid (dict): Grid-related parameters.
-        time (dict): Time-related parameters.
         io (dict): Input/output parameters.
         phys (dict): Model physics settings.
     """
-
-    # ---------------------------------------------------------------------
-    # Time parameters
-    # ---------------------------------------------------------------------
-    time = {}
-    time["ts"] = datetime.strptime("1-Jan-1979 00:00", "%d-%b-%Y %H:%M")  # Start date and time
-    time["te"] = datetime.strptime("2-Jan-1979 00:00", "%d-%b-%Y %H:%M")  # End date and time
-    time["dt"] = 0.125  # Time step in days
-
-    # Calculate the number of time steps
-    time["tn"] = int(round((time["te"] - time["ts"]).total_seconds() / 86400 / time["dt"])) + 1
-    time["dT_UTC"] = 1  # Time difference relative to UTC in hours
 
     # ---------------------------------------------------------------------
     # Grid parameters
@@ -91,7 +82,7 @@ def init_config():
     os.makedirs(io["rebootdir"], exist_ok=True)
 
     # Return the initialized parameters
-    return grid, time, io, phys
+    return grid, io, phys
 
 
 def init_constants():
@@ -154,21 +145,22 @@ def init_constants():
     # ---------------------------------------------------------------------
     # Other constants
     # ---------------------------------------------------------------------
-    C["yeardays"] = 365.242199  # Days in a year
-    C["dayseconds"] = 24 * 3600  # Seconds per day
+    C["yeardays"] = DAYS_PER_YEAR
+    C["dayseconds"] = SECONDS_PER_DAY
 
     return C
 
 
 def init_grid(grid, io, config: GridConfig):
     grid["is_partitioned"] = config.is_partitioned
+    grid["is_unstructured"] = config.is_unstructured
 
     # Read grid from Elmer, elevations from BedMachine
     if config.dem_file:
-        assert config.grid_type in {
-            GridInputType.CUSTOM,
-            GridInputType.XIOS_CUSTOM,
-        }, "DEM file can only be specified for CUSTOM or XIOS_CUSTOM grid types."
+        grid_input_type_supporting_dem = [GridInputType.CUSTOM, GridInputType.ELMERXIOS]
+        assert (
+            config.grid_type in grid_input_type_supporting_dem
+        ), f"DEM file can only be specified for {grid_input_type_supporting_dem}."
         if config.is_partitioned:
             mesh: Mesh = read_elmer_mesh(
                 mesh_root=config.mesh_file,
@@ -183,7 +175,7 @@ def init_grid(grid, io, config: GridConfig):
             grid["z"] = read_dem(config.dem_file, grid["x"], grid["y"])
             grid["lat"] = np.zeros_like(grid["x"]) + 75  # test values!
             grid["lon"] = np.zeros_like(grid["x"]) + 320  # test values!
-        if config.grid_type is GridInputType.XIOS_CUSTOM:
+        if config.grid_type is GridInputType.ELMERXIOS:
             grid = read_dem_xios(config.dem_file, grid)
         grid["mask"] = np.ones_like(grid["x"])  # treats every grid cell as glacier
         grid["gpsum"] = np.sum(grid["mask"] == 1)  # number of modelled grid cells
