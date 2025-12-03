@@ -8,29 +8,29 @@ from dataclasses import dataclass
 
 @dataclass
 class Material:
-    ALBEDO: float | None = None
     DENSITY: Final[float]
+    ALBEDO: float | None = None
 
 
 @dataclass
 class Ice(Material):
-    ALBEDO: Final[float] = 0.39
     DENSITY: Final[float] = 900.0
+    ALBEDO: Final[float] = 0.39
 
 
 @dataclass
 class FreshSnow(Material):
-    ALBEDO: Final[float] = 0.83
     DENSITY: Final[float] = 350.0
+    ALBEDO: Final[float] = 0.83
 
 
 @dataclass
 class Firn(Material):
-    ALBEDO: Final[float] = 0.52
     DENSITY: Final[float] = 500.0
+    ALBEDO: Final[float] = 0.52
 
 
 @dataclass
 class Water(Material):
-    # no ALBEDO provided for Water
     DENSITY: Final[float] = 1000.0
+    # no ALBEDO provided for Water
