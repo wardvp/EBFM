@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Material:
-    ALBEDO: Final[float]
+    ALBEDO: float | None = None
     DENSITY: Final[float]
 
 
@@ -32,4 +32,5 @@ class Firn(Material):
 
 @dataclass
 class Water(Material):
+    # no ALBEDO provided for Water
     DENSITY: Final[float] = 1000.0
