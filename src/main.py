@@ -32,12 +32,15 @@ except ImportError as e:
     coupling_supported = False
     coupling_import_error = e
 
-log_levels = {
-    "file": logging.DEBUG,  # log level for logging to file
-    0: logging.INFO,  # log level for rank 0
-    # 1: logging.DEBUG,  # to log other ranks to console define log level here
-}
-setup_logging(log_levels=log_levels)
+# TODO: replace MPI.COMM_WORLD with communicator from ebfm; either from couplers comm splitting or default comm
+setup_logging(
+    stdout_log_levels={
+        0: logging.INFO,  # log level for rank 0
+        # 1: logging.DEBUG,  # to log other ranks to console define log level here
+    },
+    file_log_level=logging.DEBUG,
+    comm=MPI.COMM_WORLD,
+)
 
 # logger for this module
 logger = logging.getLogger(__name__)

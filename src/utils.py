@@ -17,8 +17,19 @@ custom_stdout_log_levels = {
 
 
 def setup_logging(
-    log_levels=custom_stdout_log_levels, comm=MPI.COMM_WORLD, file=None, file_log_level=default_file_log_level
+    stdout_log_levels=custom_stdout_log_levels, comm=MPI.COMM_WORLD, file=None, file_log_level=default_file_log_level
 ):
+    """
+    Setup logging for EBFM with MPI support.
+
+    @param stdout_log_levels: Dictionary mapping MPI ranks to their desired log levels for console output.
+    @param comm: MPI communicator to use for determining rank and size.
+    @param file: Optional filename to log to a file. If None, no file logging is set up.
+    @param file_log_level: Log level for file logging.
+
+    @return: Configured logging module.
+    """
+
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)
 
@@ -33,8 +44,8 @@ def setup_logging(
         file_handler.setLevel(file_log_level)
         root_logger.addHandler(file_handler)
 
-    if comm.rank in log_levels.keys():
-        use_level = log_levels[comm.rank]
+    if comm.rank in stdout_log_levels.keys():
+        use_level = stdout_log_levels[comm.rank]
     else:
         use_level = default_stdout_log_level
 
