@@ -238,11 +238,11 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
 
     # Time-loop
     logger.info("Entering time loop...")
-    for t in range(1, time["tn"] + 1):
+    for t in range(time["tn"]):
         # Print time to screen
         time["TCUR"] = LOOP_general_functions.print_time(t, time["ts"], time["dt"])
 
-        logger.info(f'Time step {t} of {time["tn"]} (dt = {time["dt"]} days)')
+        logger.info(f'Time step {t + 1} of {time["tn"]} (dt = {time["dt"]} days)')
 
         # Read and prepare climate input
         if coupler and coupler.couple_to_icon_atmo:

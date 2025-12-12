@@ -125,8 +125,8 @@ class TimeConfig:
     Time configuration.
     """
 
-    start_time: datetime  # Start time of the simulation
-    end_time: datetime  # End time of the simulation
+    start_time: datetime  # Start time of the simulation (i.e., time at the beginning of the first time step)
+    end_time: datetime  # End time of the simulation (i.e., time after the last time step)
     time_step: timedelta  # Time step of the simulation
     dT_UTC: int  # Time difference relative to UTC in hours
 
@@ -165,7 +165,8 @@ class TimeConfig:
         """
         total_seconds = (self.end_time - self.start_time).total_seconds()
         step_seconds = self.time_step.total_seconds()
-        return int(round(total_seconds / step_seconds)) + 1
+        assert total_seconds % step_seconds == 0, "Time interval must be divisible by time step."
+        return int(round(total_seconds / step_seconds))
 
     def to_dict(self) -> dict:
         """Convert time configuration to a dictionary.
