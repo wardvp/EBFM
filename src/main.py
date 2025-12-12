@@ -25,7 +25,7 @@ import logging
 from typing import List
 
 try:
-    import coupling  # noqa: E402
+    from couplers.yacCoupler import YACCoupler  # noqa: E402
 
     coupling_supported = True
 except ImportError as e:
@@ -194,7 +194,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
 """
         )
     else:
-        from coupler import NoCoupler
+        from couplers.dummyCoupler import DummyCoupler
 
     logger.info(f"Starting EBFM version {ebfm.get_version()}...")
 
@@ -206,7 +206,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
     logger.debug("Reading configuration and checking for consistency.")
 
     # TODO consider introducing an ebfm_adapter_config.yaml to be parsed alternatively/additionally to command line args
-    coupling_config = CouplingConfig(args, component_name="ebfm")
+    coupling_config = CouplingConfig(args, component_name="ebfm")  # TODO: get from EBFM's coupling configuration?
     grid_config = GridConfig(args)
     time_config = TimeConfig(args)
 
@@ -229,12 +229,11 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
     OUT, IN, OUTFILE = INIT.init_initial_conditions(C, grid, io, time)
 
     if coupling_config.defines_coupling():
-        # TODO: introduce minimal stub implementation
-        # TODO consider introducing an ebfm_adapter_config.yaml
-        coupler = coupling.init(coupling_config=coupling_config)
-        coupling.setup(coupler, grid["mesh"], time)
+        coupler = YACCoupler(coupling_config=coupling_config)
     else:
-        coupler = NoCoupler(component_name=coupling_config.component_name)
+        coupler = DummyCoupler(coupling_config=coupling_config)
+
+    coupler.setup(grid["mesh"], time)
 
     # Time-loop
     logger.info("Entering time loop...")
@@ -245,7 +244,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
         logger.info(f'Time step {t} of {time["tn"]} (dt = {time["dt"]} days)')
 
         # Read and prepare climate input
-        if coupler and coupler.couple_to_icon_atmo:
+        if coupler.has_coupling_to("icon_atmo"):
             # Exchange data with ICON
             logger.info("Data exchange with ICON")
             logger.debug("Started...")
@@ -253,7 +252,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
                 "albedo": OUT["albedo"],
             }
 
-            data_from_icon = coupler.exchange_icon_atmo(data_to_icon)
+            data_from_icon = coupler.exchange("icon_atmo", data_to_icon)
 
             logger.debug("Done.")
             logger.debug("Received the following data from ICON:", data_from_icon)
@@ -282,7 +281,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
         # Calculate surface mass balance
         OUT = LOOP_mass_balance.main(OUT, IN, C)
 
-        if coupler.couple_to_elmer_ice:
+        if coupler.has_coupling_to("elmer_ice"):
             # Exchange data with Elmer
             logger.info("Data exchange with Elmer/Ice")
             logger.debug("Started...")
@@ -292,7 +291,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
                 "T_ice": OUT["T_ice"],
                 "runoff": OUT["runoff"],
             }
-            data_from_elmer = coupler.exchange_elmer_ice(data_to_elmer)
+            data_from_elmer = coupler.exchange("elmer_ice", data_to_elmer)
             logger.debug("Done.")
             logger.debug("Received the following data from Elmer/Ice:", data_from_elmer)
 
@@ -320,8 +319,8 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
 
     logger.info("Time loop completed.")
 
-    if coupler.has_coupling:
-        coupling.finalize(coupler)
+    logger.debug("Finalizing coupling...")
+    coupler.finalize()
 
     logger.info("Closing down EBFM.")
 

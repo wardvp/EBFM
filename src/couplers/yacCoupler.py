@@ -3,19 +3,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import yac
-from pathlib import Path
 import numpy as np
 from collections import namedtuple
-from typing import Dict
-
-from elmer.mesh import Mesh as Grid  # for now use an alias
-from ebfm.config import CouplingConfig
-
-# from ebfm.geometry import Grid  # TODO: consider introducing a new data structure native to EBFM?
 
 import logging
 
-from coupler import Coupler
+from couplers.base import Coupler, Grid, Dict, CouplingConfig
+
+# from ebfm.geometry import Grid  # TODO: consider introducing a new data structure native to EBFM?
 
 logger = logging.getLogger(__name__)
 
@@ -53,12 +48,18 @@ class YACCoupler(Coupler):
     source_fields: Dict[str, yac.Field] = {}
     target_fields: Dict[str, yac.Field] = {}
 
-    def __init__(self, component_name: str, coupler_config: Path):
+    def __init__(self, coupling_config: CouplingConfig):
+        """Create interface to the coupler and register component
+
+        @param[in] coupling_config coupling configuration of this component
+        """
         logger.debug(f"YAC version is {yac.version()}")
         self.interface = yac.YAC()
-        self.component_name = component_name
-        self.interface.read_config_yaml(str(coupler_config))
-        self.component = self.interface.def_comp(component_name)
+        self.component_name = coupling_config.component_name
+        self.interface.read_config_yaml(str(coupling_config.coupler_config))
+        self.component = self.interface.def_comp(self.component_name)
+        self.couple_to_icon_atmo = coupling_config.couple_to_icon_atmo
+        self.couple_to_elmer_ice = coupling_config.couple_to_elmer_ice
 
     def add_grid(self, grid_name, grid):
         """
@@ -274,6 +275,14 @@ class YACCoupler(Coupler):
         data, action = field.get()
         return data
 
+    def exchange(self, component_name: str, data_to_exchange: Dict[str, np.array]) -> Dict[str, np.array]:
+        if component_name == "icon_atmo":
+            return self.exchange_icon_atmo(data_to_exchange)
+        elif component_name == "elmer_ice":
+            return self.exchange_elmer_ice(data_to_exchange)
+        else:
+            raise ValueError(f"Unknown component name '{component_name}' for data exchange.")
+
     def exchange_icon_atmo(self, put_data: Dict[str, np.array]) -> Dict[str, np.array]:
         """Exchange data with ICON atmosphere component
 
@@ -371,47 +380,21 @@ class YACCoupler(Coupler):
 
         return received_data
 
+    def setup(self, grid: Grid, time: Dict[str, float]):
+        """Setup the coupling interface
+
+        Performs initialization operations after init and before entering the
+        time loop
+
+        @param[in] grid Grid used by EBFM where coupling happens
+        @param[in] time dictionary with time parameters, e.g. {'tn': 12, 'dt': 0.125}
+        """
+        grid_name = "ebfm_grid"  # TODO: get from ebfm_coupling_config?
+
+        self.add_grid(grid_name, grid)
+        self.add_couples(time)
+
     def finalize(self):
         """Finalize the coupling interface"""
         del self.interface
-
-
-def init(coupling_config: CouplingConfig) -> Coupler:
-    """Create interface to the coupler and register component
-
-    @param[in] path to global Coupler configuration file
-
-    @returns Coupler object
-    """
-
-    # TODO: use coupling_config for EBFM specific configuration?
-
-    component_name = coupling_config.component_name
-    coupler = YACCoupler(component_name, coupling_config.coupler_config)
-
-    coupler.couple_to_icon_atmo = coupling_config.couple_to_icon_atmo
-    coupler.couple_to_elmer_ice = coupling_config.couple_to_elmer_ice
-
-    # TODO: yac_cget_comp_comm(comp_id, elmer_comm) needed?
-
-    return coupler
-
-
-def setup(coupler: Coupler, grid: Grid, time: Dict[str, float]):
-    """Performs initialization operations after init and before enterint the
-    time loop
-
-    @param[in] coupler Coupler object with interface to YAC
-    @param[in] grid Grid used by EBFM where coupling happens
-    @param[in] time dictionary with time parameters, e.g. {'tn': 12, 'dt': 0.125}
-    """
-    grid_name = "ebfm_grid"  # TODO: get from coupling_config?
-
-    coupler.add_grid(grid_name, grid)
-    coupler.add_couples(time)
-
-
-def finalize(coupler: Coupler):
-    logger.debug("Finalizing coupling...")
-    coupler.finalize()
-    logger.info("Coupling finalized.")
+        logger.info("YAC Coupling finalized.")
