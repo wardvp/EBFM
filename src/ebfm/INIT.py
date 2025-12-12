@@ -325,9 +325,6 @@ def init_grid(grid, io, config: GridConfig):
     else:
         raise ValueError(f"Unsupported grid input type {config.grid_type} specified in configuration.")
 
-        # TODO: improve mesh handling for MATLAB grids
-        grid["mesh"] = None  # No mesh associated with MATLAB grid
-
     return grid
 
 
