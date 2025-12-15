@@ -267,10 +267,9 @@ def init_grid(grid, io, config: GridConfig):
         # Calculate grid spacing
         grid["dx"] = grid["x_2D"][0][1] - grid["x_2D"][0][0]
 
-        grid["gpsum"] = compute_number_of_glacier_cells(grid)
-
         # Create 1-D mask
         grid["mask"] = grid["mask_2D"][grid["mask_2D"] == 1]
+        grid["gpsum"] = compute_number_of_glacier_cells(grid)
 
         # Calculate latitude & longitude fields (from the original UTM coordinates)
         utmzone = grid["utmzone"]  # Assume this is already part of the grid
