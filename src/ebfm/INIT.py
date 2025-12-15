@@ -171,14 +171,23 @@ def init_grid(grid, io, config: GridConfig):
             mesh: Mesh = read_elmer_mesh(mesh_root=config.mesh_file)
 
         grid["x"], grid["y"] = mesh.x_vertices, mesh.y_vertices
+        # grid["x"] = np.zeros_like(grid["z"])  # remove?
         if config.grid_type is GridInputType.CUSTOM:
             grid["z"] = read_dem(config.dem_file, grid["x"], grid["y"])
             grid["lat"] = np.zeros_like(grid["x"]) + 75  # test values!
             grid["lon"] = np.zeros_like(grid["x"]) + 320  # test values!
         if config.grid_type is GridInputType.ELMERXIOS:
             grid = read_dem_xios(config.dem_file, grid)
-        grid["mask"] = np.ones_like(grid["x"])  # treats every grid cell as glacier
-        grid["gpsum"] = np.sum(grid["mask"] == 1)  # number of modelled grid cells
+
+        if grid["input_type"] is GridInputType.ELMERXIOS:
+            min_thickness_glacier = 1.0  # minimum ice thickness to consider grid cell as glacier (m)
+
+            # treats grid cells as glacier where ice thickness exceeds threshold
+            grid["mask"] = (grid["h"] > min_thickness_glacier).astype(int)
+        else:
+            grid["mask"] = np.ones_like(grid["x"])  # treats every grid cell as glacier
+
+        grid["gpsum"] = np.sum(grid["mask"])  # number of glacier grid cells
         grid["slope_x"] = np.zeros_like(grid["x"])  # test values!
         grid["slope_y"] = np.zeros_like(grid["x"])  # test values!
         grid["slope_beta"] = np.zeros_like(grid["x"])  # test values!
