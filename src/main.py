@@ -18,10 +18,9 @@ from ebfm import LOOP_write_to_file, FINAL_create_restart_file
 from ebfm.grid import GridInputType
 from ebfm.config import CouplingConfig, GridConfig, TimeConfig
 from ebfm.constants import SECONDS_PER_DAY
+from ebfm.logger import Logger, setup_logging, log_levels_map, getLogger
 
 from mpi4py import MPI
-from utils import setup_logging
-import logging
 
 from typing import List
 
@@ -33,15 +32,8 @@ except ImportError as e:
     coupling_supported = False
     coupling_import_error = e
 
-log_levels = {
-    "file": logging.DEBUG,  # log level for logging to file
-    0: logging.INFO,  # log level for rank 0
-    # 1: logging.DEBUG,  # to log other ranks to console define log level here
-}
-setup_logging(log_levels=log_levels)
-
 # logger for this module
-logger = logging.getLogger(__name__)
+logger: Logger = None  # will be set later
 
 
 def add_coupling_arguments(parser: argparse.ArgumentParser):
@@ -98,7 +90,7 @@ def extract_active_coupling_features(args: argparse.Namespace) -> List[str]:
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
         "--version",
@@ -127,20 +119,27 @@ def main():
         " If --netcdf-mesh is provided elevations will be read from the given NetCDF mesh file.",
     )
 
+    input_group.add_argument(
+        "--netcdf-mesh-unstructured",
+        type=Path,
+        help="Path to the unstructured NetCDF mesh file. Optional if using --elmer-mesh."
+        " If --netcdf-mesh is provided elevations will be read from the given NetCDF mesh file.",
+    )
+
     time_group = parser.add_argument_group("time configuration")
 
     time_group.add_argument(
         "--start-time",
         type=str,
-        help="Start time of the simulation in format 'DD-Mon-YYYY HH:MM', e.g., '01-Jan-1979 00:00'.",
+        help="Start time of the simulation in format 'DD-Mon-YYYY HH:MM'",
         default="1-Jan-1979 00:00",
     )
 
     time_group.add_argument(
         "--end-time",
         type=str,
-        help="End time of the simulation in format 'DD-Mon-YYYY HH:MM', e.g., '02-Jan-1979 09:00'.",
-        default="2-Jan-1979 09:00",
+        help="End time of the simulation in format 'DD-Mon-YYYY HH:MM'",
+        default="2-Jan-1979 00:00",
     )
 
     time_group.add_argument(
@@ -164,6 +163,22 @@ def main():
         default=MPI.COMM_WORLD.rank + 1,
         help="If using a partitioned Elmer mesh, allows to specify which partition ID to use for this run. "
         "If not provided, the MPI rank + 1 will be used as partition ID.",
+    )
+
+    logger_group = parser.add_argument_group("logging configuration")
+
+    logger_group.add_argument(
+        "--log-level-console",
+        type=str,
+        choices=list(log_levels_map.keys()),
+        default="INFO",
+        help="Log level for console output for all MPI ranks (unless overridden by custom settings in utils.py).",
+    )
+
+    logger_group.add_argument(
+        "--log-file",
+        type=Path,
+        help="If provided, log output will be written to the specified file (one file per MPI rank).",
     )
 
     # Add args for features requiring 'import coupling'
@@ -190,6 +205,14 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
     else:
         from coupler import NoCoupler
 
+    # TODO: replace MPI.COMM_WORLD with communicator from ebfm; either from couplers comm splitting or default comm
+    setup_logging(
+        stdout_log_level=log_levels_map[args.log_level_console],
+        file=args.log_file,
+        comm=MPI.COMM_WORLD,
+    )
+
+    logger = getLogger(__name__)
     logger.info(f"Starting EBFM version {ebfm.get_version()}...")
 
     logger.info("Done parsing command line arguments.")
@@ -234,7 +257,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
     logger.info("Entering time loop...")
     for t in range(1, time["tn"] + 1):
         # Print time to screen
-        time = LOOP_general_functions.print_time(t, time)
+        time["TCUR"] = LOOP_general_functions.print_time(t, time["ts"], time["dt"])
 
         logger.info(f'Time step {t} of {time["tn"]} (dt = {time["dt"]} days)')
 
@@ -298,11 +321,10 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
 
         # Write output to files (only in uncoupled run and for unpartitioned grid)
         if not grid["is_partitioned"] and not coupler.has_coupling:
-            assert (
-                grid_config.grid_type is GridInputType.MATLAB
-            ), "Output writing currently only implemented for MATLAB input grids."
-            io, OUTFILE = LOOP_write_to_file.main(OUTFILE, io, OUT, grid, t, time, C)
-            pass
+            if grid_config.grid_type is GridInputType.MATLAB:
+                io, OUTFILE = LOOP_write_to_file.main(OUTFILE, io, OUT, grid, t, time, C)
+            else:
+                logger.warning("Skipping writing output to file for Elmer input grids.")
         elif grid["is_partitioned"] or coupler.has_coupling:
             logger.warning("Skipping writing output to file for coupled or partitioned runs.")
         else:

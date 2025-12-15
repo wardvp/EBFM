@@ -11,7 +11,7 @@ from pyproj import Transformer
 from netCDF4 import Dataset, num2date
 
 from pathlib import Path
-from reader import read_elmer_mesh, read_dem
+from reader import read_elmer_mesh, read_dem, read_dem_xios
 
 from elmer.mesh import Mesh
 from ebfm.config import GridConfig
@@ -139,8 +139,14 @@ def init_grid(config: GridConfig):
     grid["doubledepth"] = True  # Double vertical layer depth at specified layers (True/False)
     grid["split"] = np.array([15, 25, 35])  # Vertical layer numbers at which layer depth doubles
     grid["is_partitioned"] = config.is_partitioned
+    grid["is_unstructured"] = config.is_unstructured
 
-    if config.grid_type is GridInputType.CUSTOM:  # Read grid from Elmer, elevations from BedMachine
+    # Read grid from Elmer, elevations from BedMachine
+    if config.dem_file:
+        grid_input_type_supporting_dem = [GridInputType.CUSTOM, GridInputType.ELMERXIOS]
+        assert (
+            config.grid_type in grid_input_type_supporting_dem
+        ), f"DEM file can only be specified for {grid_input_type_supporting_dem}."
         if config.is_partitioned:
             mesh: Mesh = read_elmer_mesh(
                 mesh_root=config.mesh_file,
@@ -151,15 +157,18 @@ def init_grid(config: GridConfig):
             mesh: Mesh = read_elmer_mesh(mesh_root=config.mesh_file)
 
         grid["x"], grid["y"] = mesh.x_vertices, mesh.y_vertices
-        grid["z"] = read_dem(config.dem_file, grid["x"], grid["y"])
-        grid["slope_x"] = np.zeros_like(grid["x"])  # test values!
-        grid["slope_y"] = np.zeros_like(grid["x"])  # test values!
-        grid["lat"] = np.zeros_like(grid["x"]) + 75  # test values!
-        grid["lon"] = np.zeros_like(grid["x"]) + 320  # test values!
-        grid["slope_beta"] = np.zeros_like(grid["x"])  # test values!
-        grid["slope_gamma"] = np.zeros_like(grid["x"])  # test values!
+        if config.grid_type is GridInputType.CUSTOM:
+            grid["z"] = read_dem(config.dem_file, grid["x"], grid["y"])
+            grid["lat"] = np.zeros_like(grid["x"]) + 75  # test values!
+            grid["lon"] = np.zeros_like(grid["x"]) + 320  # test values!
+        if config.grid_type is GridInputType.ELMERXIOS:
+            grid = read_dem_xios(config.dem_file, grid)
         grid["mask"] = np.ones_like(grid["x"])  # treats every grid cell as glacier
         grid["gpsum"] = np.sum(grid["mask"] == 1)  # number of modelled grid cells
+        grid["slope_x"] = np.zeros_like(grid["x"])  # test values!
+        grid["slope_y"] = np.zeros_like(grid["x"])  # test values!
+        grid["slope_beta"] = np.zeros_like(grid["x"])  # test values!
+        grid["slope_gamma"] = np.zeros_like(grid["x"])  # test values!
         grid["mesh"] = mesh
         grid["has_shading"] = False  # TODO: see https://github.com/EBFMorg/EBFM/issues/11
         # TODO later add slope
@@ -286,9 +295,30 @@ def init_grid(config: GridConfig):
         grid["slope_gamma"][(grid["slope_x"] > 0) & (grid["slope_y"] == 0)] = np.pi / 2
         grid["slope_gamma"][(grid["slope_x"] < 0) & (grid["slope_y"] == 0)] = -np.pi / 2
         grid["slope_gamma"] = -grid["slope_gamma"]
+    elif grid["input_type"] is GridInputType.ELMER_XIOS:
+        grid = read_elmer_xios_grid(grid=grid, gridfile=config.dem_file)
+        grid["gpsum"] = grid["z"].shape[0]
+        grid["mask"] = (grid["h"] > 1.0) * 1.0
+        grid["x"] = np.zeros_like(grid["z"])
+        grid["slope_beta"] = np.zeros_like(grid["x"])  # test values!
+        grid["slope_gamma"] = np.zeros_like(grid["x"])  # test values!
     else:
         raise ValueError(f"Unsupported grid input type {config.grid_type} specified in configuration.")
 
+    return grid
+
+
+def read_elmer_xios_grid(grid, gridfile: Path):
+    import netCDF4 as nc
+
+    print(gridfile)
+    with nc.Dataset(gridfile) as file:
+        grid["lat"] = file["mesh2D_node_x"][:]
+        grid["lon"] = file["mesh2D_node_y"][:]
+        grid["x"] = file["x"][:]
+        grid["y"] = file["y"][:]
+        grid["z"] = np.squeeze(file["zs"][:].data)
+        grid["h"] = np.squeeze(file["h"][:].data)
     return grid
 
 
