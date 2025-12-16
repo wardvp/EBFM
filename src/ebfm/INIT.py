@@ -342,31 +342,31 @@ def init_grid(grid, io, config: GridConfig):
         # loop over the azimuth angles to determine gridded maximum grid angles per angle
         grid["maxgridangle_mask"] = np.zeros((grid["gpsum"], grid["nr_az_steps"]), dtype=np.float64)
         for n in range(grid["nr_az_steps"]):
-            az_rad = np.full(int(grid["gpsum"]), grid["az_maxgridangle"][n], dtype=float)
+            az = np.full(int(grid["gpsum"]), grid["az_maxgridangle"][n], dtype=float)
 
-            # calculate step sizes in x- and y-directions for all azimuth angles
-            ddx_mask = np.empty_like(az_rad, dtype=float)
-            ddy_mask = np.empty_like(az_rad, dtype=float)
-            m = az_rad <= -0.75 * np.pi
-            ddx_mask[m] = -np.tan(np.pi + az_rad[m])
-            m = (az_rad <= -0.25 * np.pi) & (az_rad > -0.75 * np.pi)
-            ddx_mask[m] = -1.0
-            m = (az_rad <= 0.25 * np.pi) & (az_rad > -0.25 * np.pi)
-            ddx_mask[m] = np.tan(az_rad[m])
-            m = (az_rad <= 0.75 * np.pi) & (az_rad > 0.25 * np.pi)
-            ddx_mask[m] = 1.0
-            m = az_rad > 0.75 * np.pi
-            ddx_mask[m] = np.tan(np.pi - az_rad[m])
-            m = az_rad <= -0.75 * np.pi
-            ddy_mask[m] = 1.0
-            m = (az_rad <= -0.25 * np.pi) & (az_rad > -0.75 * np.pi)
-            ddy_mask[m] = -np.tan(0.5 * np.pi + az_rad[m])
-            m = (az_rad <= 0.25 * np.pi) & (az_rad > -0.25 * np.pi)
-            ddy_mask[m] = -1.0
-            m = (az_rad <= 0.75 * np.pi) & (az_rad > 0.25 * np.pi)
-            ddy_mask[m] = -np.tan(0.5 * np.pi - az_rad[m])
-            m = az_rad > 0.75 * np.pi
-            ddy_mask[m] = 1.0
+            # calculate step sizes (ddx, ddy) in x- and y-directions for all azimuth angles
+            ddx = np.empty_like(az, dtype=float)
+            ddy = np.empty_like(az, dtype=float)
+            m = az <= -0.75 * np.pi
+            ddx[m] = -np.tan(np.pi + az[m])
+            m = (az <= -0.25 * np.pi) & (az > -0.75 * np.pi)
+            ddx[m] = -1.0
+            m = (az <= 0.25 * np.pi) & (az > -0.25 * np.pi)
+            ddx[m] = np.tan(az[m])
+            m = (az <= 0.75 * np.pi) & (az > 0.25 * np.pi)
+            ddx[m] = 1.0
+            m = az > 0.75 * np.pi
+            ddx[m] = np.tan(np.pi - az[m])
+            m = az <= -0.75 * np.pi
+            ddy[m] = 1.0
+            m = (az <= -0.25 * np.pi) & (az > -0.75 * np.pi)
+            ddy[m] = -np.tan(0.5 * np.pi + az[m])
+            m = (az <= 0.25 * np.pi) & (az > -0.25 * np.pi)
+            ddy[m] = -1.0
+            m = (az <= 0.75 * np.pi) & (az > 0.25 * np.pi)
+            ddy[m] = -np.tan(0.5 * np.pi - az[m])
+            m = az > 0.75 * np.pi
+            ddy[m] = 1.0
 
             # from every grid cell step in the direction of the azimuth until the grid end is reached
             # and detect maximum grid angle along the path
@@ -375,31 +375,32 @@ def init_grid(grid, io, config: GridConfig):
             count = 1
             active = np.ones(grid["gpsum"], dtype=bool)
             while active.any():
-                kk = np.round(j0 + ddx_mask * count).astype(np.int64)
-                ll = np.round(i0 + ddy_mask * count).astype(np.int64)
+                j = np.round(j0 + ddx * count).astype(np.int64)
+                i = np.round(i0 + ddy * count).astype(np.int64)
 
-                inb = (kk >= 0) & (kk < yl) & (ll >= 0) & (ll < xl) & active
-                if not inb.any():
+                inbound = (j >= 0) & (j < yl) & (i >= 0) & (i < xl) & active
+                if not inbound.any():  # stop when all walks have reached the domain edge
                     break
 
-                llv = ll[inb]
-                kkv = kk[inb]
+                iv = i[inbound]
+                jv = j[inbound]
 
-                dx = grid["x_2D"][llv, kkv] - grid["x"][inb]
-                dy = grid["y_2D"][llv, kkv] - grid["y"][inb]
-                dist = np.hypot(dx, dy)  # walk distance from start to target
+                dx = grid["x_2D"][iv, jv] - grid["x"][inbound]
+                dy = grid["y_2D"][iv, jv] - grid["y"][inbound]
+                distance = np.hypot(dx, dy)  # walk distance from start to target
 
-                dz = grid["z_2D"][llv, kkv] - grid["z"][inb]
-                ang = np.arctan(dz / dist)  # grid angle from start to target
+                dz = grid["z_2D"][iv, jv] - grid["z"][inbound]
+                grid_angle = np.arctan(dz / distance)  # grid angle from start to target
 
-                max_angle[inb] = np.maximum(max_angle[inb], ang)  # update max grid angle when needed
+                max_angle[inbound] = np.maximum(max_angle[inbound], grid_angle)  # update max grid angle when needed
 
-                active &= (kk >= 0) & (kk < yl) & (ll >= 0) & (ll < xl)  # continue walk until domain edge is reached
+                active &= (j >= 0) & (j < yl) & (i >= 0) & (i < xl)  # continue walk until domain edge is reached
 
                 count += 1
 
             # fill lookup table with maximum grid angles for all cells (dimension 1) and azimuth angle (dimension 2)
             grid["maxgridangle_mask"][:, n] = max_angle
+            print(np.mean(max_angle))
 
     else:
         raise ValueError(f"Unsupported grid input type {config.grid_type} specified in configuration.")
