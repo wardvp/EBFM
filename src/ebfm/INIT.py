@@ -328,6 +328,96 @@ def init_grid(grid, io, config: GridConfig):
         grid["slope_gamma"][(grid["slope_x"] > 0) & (grid["slope_y"] == 0)] = np.pi / 2
         grid["slope_gamma"][(grid["slope_x"] < 0) & (grid["slope_y"] == 0)] = -np.pi / 2
         grid["slope_gamma"] = -grid["slope_gamma"]
+
+        # -----------------------------------------------------------------------------------------------------
+        # Pre-compute maximum grid elevation angle for various azimuth angles (needed for shading calculation)
+        # -----------------------------------------------------------------------------------------------------
+        grid["nr_az_steps"] = 24
+
+        # azimuth angles in radians from -pi to +pi with nr_az_steps number of steps
+        grid["az_maxgridangle"] = -np.pi * (-1.0 + 2.0 * (np.arange(1, grid["nr_az_steps"] + 1) / grid["nr_az_steps"]))
+
+        yl = grid["Ly"]
+        xl = grid["Lx"]
+        grid["maxgridangle_mask"] = np.zeros((grid["gpsum"], grid["nr_az_steps"]), dtype=np.float64)
+        for n in range(grid["nr_az_steps"]):
+            az_rad = np.full(int(grid["gpsum"]), grid["az_maxgridangle"][n], dtype=float)
+
+            # calculate step sizes in x- and y-directions for all azimuth angles
+            ddx_mask = np.empty_like(az_rad, dtype=float)
+            ddy_mask = np.empty_like(az_rad, dtype=float)
+            m = az_rad <= -0.75 * np.pi
+            ddx_mask[m] = -np.tan(np.pi + az_rad[m])
+            m = (az_rad <= -0.25 * np.pi) & (az_rad > -0.75 * np.pi)
+            ddx_mask[m] = -1.0
+            m = (az_rad <= 0.25 * np.pi) & (az_rad > -0.25 * np.pi)
+            ddx_mask[m] = np.tan(az_rad[m])
+            m = (az_rad <= 0.75 * np.pi) & (az_rad > 0.25 * np.pi)
+            ddx_mask[m] = 1.0
+            m = az_rad > 0.75 * np.pi
+            ddx_mask[m] = np.tan(np.pi - az_rad[m])
+            m = az_rad <= -0.75 * np.pi
+            ddy_mask[m] = 1.0
+            m = (az_rad <= -0.25 * np.pi) & (az_rad > -0.75 * np.pi)
+            ddy_mask[m] = -np.tan(0.5 * np.pi + az_rad[m])
+            m = (az_rad <= 0.25 * np.pi) & (az_rad > -0.25 * np.pi)
+            ddy_mask[m] = -1.0
+            m = (az_rad <= 0.75 * np.pi) & (az_rad > 0.25 * np.pi)
+            ddy_mask[m] = -np.tan(0.5 * np.pi - az_rad[m])
+            m = az_rad > 0.75 * np.pi
+            ddy_mask[m] = 1.0
+
+            x2d = np.asarray(grid["x_2D"], dtype=np.float64)
+            y2d = np.asarray(grid["y_2D"], dtype=np.float64)
+            z2d = np.asarray(grid["z_2D"], dtype=np.float64)
+
+            xl, yl = x2d.shape
+
+            i0, j0 = np.where(mask_2D == 1)
+            npts = ddx_mask.size
+
+            sx = ddx_mask
+            sy = ddy_mask
+            x0 = grid["x"]
+            y0 = grid["y"]
+            z0 = grid["z"]
+
+            best = np.full(npts, -np.inf, dtype=np.float64)
+
+            # from every grid cell step in the direction of the azimuth until grid boundary is reached
+            # and detect maximum grid angle along the path
+            count = 1
+            active = np.ones(npts, dtype=bool)
+            while active.any():
+                kk = np.round(j0 + sx * count).astype(np.int64)
+                ll = np.round(i0 + sy * count).astype(np.int64)
+
+                inb = (kk >= 0) & (kk < yl) & (ll >= 0) & (ll < xl) & active
+                if not inb.any():
+                    break
+
+                llv = ll[inb]
+                kkv = kk[inb]
+
+                dx = x2d[llv, kkv] - x0[inb]
+                dy = y2d[llv, kkv] - y0[inb]
+                dist = np.hypot(dx, dy)
+
+                dz = z2d[llv, kkv] - z0[inb]
+                ang = np.arctan(dz / dist)
+
+                best[inb] = np.maximum(best[inb], ang)
+
+                active &= (kk >= 0) & (kk < yl) & (ll >= 0) & (ll < xl)
+
+                count += 1
+
+            maxgridangle = np.zeros((xl, yl), dtype=np.float64)
+            maxgridangle[i0, j0] = best
+
+            # create 2-D array with maximum grid angles for all cells (dimension 1) and azimuth angle (dimension 2)
+            grid["maxgridangle_mask"][:, n] = maxgridangle.flatten()[mask_flat == 1]
+
     else:
         raise ValueError(f"Unsupported grid input type {config.grid_type} specified in configuration.")
 
