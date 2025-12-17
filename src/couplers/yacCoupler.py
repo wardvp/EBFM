@@ -8,7 +8,7 @@ from collections import namedtuple
 
 from ebfm import logging
 
-from couplers.base import Coupler, Grid, Dict, CouplingConfig
+from couplers.base import Coupler, Grid, Dict, CouplingConfig, Component
 
 # from ebfm.geometry import Grid  # TODO: consider introducing a new data structure native to EBFM?
 
@@ -58,8 +58,8 @@ class YACCoupler(Coupler):
         self.component_name = coupling_config.component_name
         self.interface.read_config_yaml(str(coupling_config.coupler_config))
         self.component = self.interface.def_comp(self.component_name)
-        self._couple_to_icon_atmo = coupling_config.couple_to_icon_atmo
-        self._couple_to_elmer_ice = coupling_config.couple_to_elmer_ice
+        self._couples_to[Component.icon_atmo] = coupling_config.couple_to_icon_atmo
+        self._couples_to[Component.elmer_ice] = coupling_config.couple_to_elmer_ice
 
     def add_grid(self, grid_name, grid):
         """
@@ -102,14 +102,24 @@ class YACCoupler(Coupler):
         @param[in] time dictionary with time parameters, e.g. {'tn': 12, 'dt': 0.125}
         """
 
-        if self._couple_to_elmer_ice:
+        # TODO: Make this more generic.
+        """
+        for component, is_coupled in self._couples_to.items():
+            if is_coupled:
+                self.construct_coupling_to(component, time)
+        """
+
+        if self._couples_to[Component.elmer_ice]:
             self.construct_coupling_elmer_ice(time)
 
-        if self._couple_to_icon_atmo:
+        if self._couples_to[Component.icon_atmo]:
             self.construct_coupling_icon_atmo(time)
 
     def construct_coupling_elmer_ice(self, time: Dict[str, float]):
-        assert self.couple_to_elmer_ice, "Cannot construct coupling to Elmer/Ice if 'couple_to_elmer_ice' is False."
+        component = Component.elmer_ice
+        assert self._couples_to[
+            component
+        ], f"Cannot construct coupling to {component=} because {self._couples_to[component]=}'."
 
         FieldDefinition = namedtuple("FieldDefinition", ["exchange_type", "name", "metadata"])
         # TODO: Get hard-coded data below from dummies/EBFM/ebfm-config.yaml
@@ -165,7 +175,10 @@ class YACCoupler(Coupler):
                 self.target_fields[field_definition.name] = field
 
     def construct_coupling_icon_atmo(self, time: Dict[str, float]):
-        assert self._couple_to_icon_atmo, "Cannot construct coupling to ICON if '_couple_to_icon_atmo' is False."
+        component = Component.icon_atmo
+        assert self._couples_to[
+            component
+        ], f"Cannot construct coupling to {component=} because {self._couples_to[component]=}'."
 
         FieldDefinition = namedtuple("FieldDefinition", ["exchange_type", "name", "metadata"])
         # TODO: Get hard-coded data below from dummies/EBFM/ebfm-config.yaml
@@ -276,12 +289,19 @@ class YACCoupler(Coupler):
         return data
 
     def exchange(self, component_name: str, data_to_exchange: Dict[str, np.array]) -> Dict[str, np.array]:
-        if component_name == "icon_atmo":
+        # TODO: Make this more generic.
+        """
+        component = Component[component_name]  # raises KeyError if component_name is unexpected
+        self._exchange_with(component, data_to_exchange)  # must support all components in Component
+        """
+
+        component = Component[component_name]
+        if component == Component.icon_atmo:
             return self._exchange_icon_atmo(data_to_exchange)
-        elif component_name == "elmer_ice":
+        elif component == Component.elmer_ice:
             return self._exchange_elmer_ice(data_to_exchange)
         else:
-            raise ValueError(f"Unknown component name '{component_name}' for data exchange.")
+            raise ValueError(f"Unknown component '{component}' for data exchange.")
 
     def _exchange_icon_atmo(self, put_data: Dict[str, np.array]) -> Dict[str, np.array]:
         """Exchange data with ICON atmosphere component
@@ -290,9 +310,10 @@ class YACCoupler(Coupler):
 
         @returns dictionary of exchanged field data
         """
-        assert (
-            self._couple_to_icon_atmo
-        ), "Cannot exchange data with ICON atmosphere if '_couple_to_icon_atmo' is False."
+        component = Component.icon_atmo
+        assert self._couples_to[
+            component
+        ], f"Cannot exchange data with {component=} because {self._couples_to[component]=}'."
 
         icon_fields = set(
             [
@@ -345,7 +366,10 @@ class YACCoupler(Coupler):
 
         @returns dictionary of exchanged field data
         """
-        assert self.couple_to_elmer_ice, "Cannot exchange data with Elmer/Ice if 'couple_to_elmer_ice' is False."
+        component = Component.elmer_ice
+        assert self._couples_to[
+            component
+        ], f"Cannot exchange data with {component=} because {self._couples_to[component]=}'."
 
         # TODO: make configurable if needed
         elmer_fields = set(

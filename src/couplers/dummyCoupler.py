@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from couplers import Coupler
-from couplers.base import Grid, Dict, CouplingConfig
+from couplers.base import Grid, Dict, CouplingConfig, Component
 
 import logging
 
@@ -16,8 +16,8 @@ class DummyCoupler(Coupler):
     This can be used when no coupling is required.
     """
 
-    _couple_to_icon_atmo: bool = False
-    _couple_to_elmer_ice: bool = False
+    # DummyCoupler couples to none of the available components
+    _couples_to: Dict[Component, bool] = {c: False for c in Component}
 
     def __init__(self, coupling_config: CouplingConfig):
         self.component_name = coupling_config.component_name
