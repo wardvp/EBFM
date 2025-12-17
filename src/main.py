@@ -130,21 +130,24 @@ def main():
     time_group.add_argument(
         "--start-time",
         type=str,
-        help="Start time of the simulation in format 'DD-Mon-YYYY HH:MM'",
+        help="Start time of the simulation in format 'DD-Mon-YYYY HH:MM' "
+        "(i.e., time at the beginning of the first time step)",
         default="1-Jan-1979 00:00",
     )
 
     time_group.add_argument(
         "--end-time",
         type=str,
-        help="End time of the simulation in format 'DD-Mon-YYYY HH:MM'",
+        help="End time of the simulation in format 'DD-Mon-YYYY HH:MM' "
+        "(i.e., time at the end of the last time step)",
         default="2-Jan-1979 00:00",
     )
 
     time_group.add_argument(
         "--time-step",
         type=float,
-        help="Time step of the simulation in days, e.g., 0.125 for 3 hours.",
+        help="Time step of the simulation in days, e.g., 0.125 for 3 hours. "
+        "Note: The difference between end-time and start-time must be divisible by the time step.",
         default=0.125,
     )
 
@@ -254,11 +257,11 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
 
     # Time-loop
     logger.info("Entering time loop...")
-    for t in range(1, time["tn"] + 1):
+    for t in range(time["tn"]):
         # Print time to screen
         time["TCUR"] = LOOP_general_functions.print_time(t, time["ts"], time["dt"])
 
-        logger.info(f'Time step {t} of {time["tn"]} (dt = {time["dt"]} days)')
+        logger.info(f'Time step {t + 1} of {time["tn"]} (dt = {time["dt"]} days)')
 
         # Read and prepare climate input
         if coupler and coupler.couple_to_icon_atmo:
@@ -321,7 +324,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
         # Write output to files (only in uncoupled run and for unpartitioned grid)
         if not grid["is_partitioned"] and not coupler.has_coupling:
             if grid_config.grid_type is GridInputType.MATLAB:
-                io, OUTFILE = LOOP_write_to_file.main(OUTFILE, io, OUT, grid, t, time, C)
+                io, OUTFILE = LOOP_write_to_file.main(OUTFILE, io, OUT, grid, t, time)
             else:
                 logger.warning("Skipping writing output to file for Elmer input grids.")
         elif grid["is_partitioned"] or coupler.has_coupling:
