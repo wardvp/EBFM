@@ -260,7 +260,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
         logger.info(f'Time step {t} of {time["tn"]} (dt = {time["dt"]} days)')
 
         # Read and prepare climate input
-        if coupler.has_coupling_to("icon_atmo"):
+        if coupler and coupler.couple_to_icon_atmo:
             # Exchange data with ICON
             logger.info("Data exchange with ICON")
             logger.debug("Started...")
@@ -297,7 +297,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
         # Calculate surface mass balance
         OUT = LOOP_mass_balance.main(OUT, IN, C)
 
-        if coupler.has_coupling_to("elmer_ice"):
+        if coupler.couple_to_elmer_ice:
             # Exchange data with Elmer
             logger.info("Data exchange with Elmer/Ice")
             logger.debug("Started...")
