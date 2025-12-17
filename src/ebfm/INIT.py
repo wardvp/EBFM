@@ -289,9 +289,6 @@ def init_grid(grid, io, config: GridConfig):
         grid["ind"] = np.where(mask_flat == 1)
         grid["xind"], grid["yind"] = np.where(mask_2D == 1)
 
-        # TODO: needed to avoid KeyError, would lead to failure if used with coupling
-        grid["mesh"] = None
-
         # ---------------------------------------------------------------------
         # Grid slope and aspect
         # ---------------------------------------------------------------------

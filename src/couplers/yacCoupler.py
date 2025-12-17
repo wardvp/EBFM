@@ -381,7 +381,7 @@ class YACCoupler(Coupler):
 
         return received_data
 
-    def setup(self, grid: Grid, time: Dict[str, float]):
+    def _setup(self, grid: Dict | Grid, time: Dict[str, float]):
         """Setup the coupling interface
 
         Performs initialization operations after init and before entering the

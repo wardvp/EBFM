@@ -76,12 +76,31 @@ class Coupler:
         """
         raise NotImplementedError("Coupler is an abstract base class and cannot be instantiated directly.")
 
-    def setup(self, grid: Grid, time: Dict[str, float]):
+    def setup(self, grid: Grid | Dict, time: Dict[str, float]):
         """
         Setup the coupling interface
 
         Performs initialization operations after init and before entering the
         time loop
+
+        @param[in] grid Grid used by EBFM where coupling happens
+        @param[in] time dictionary with time parameters, e.g. {'tn': 12, 'dt': 0.125}
+        """
+        print(type(grid))
+
+        if isinstance(grid, dict):
+            deprecation(
+                logger,
+                "Providing grid as Dict is not recommended. Please provide a grid of type coupler.Grid. "
+                'Usually you can get this Grid by accessing grid["mesh"] from the grid dictionary.',
+            )
+            grid = grid["mesh"]
+
+        self._setup(grid, time)
+
+    def _setup(self, grid: Grid, time: Dict[str, float]):
+        """
+        Implementation of Coupler.setup
 
         @param[in] grid Grid used by EBFM where coupling happens
         @param[in] time dictionary with time parameters, e.g. {'tn': 12, 'dt': 0.125}

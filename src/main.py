@@ -246,10 +246,15 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
 
     if coupling_config.defines_coupling():
         coupler = YACCoupler(coupling_config=coupling_config)
+        coupler.setup(grid["mesh"], time)
     else:
         coupler = DummyCoupler(coupling_config=coupling_config)
-
-    coupler.setup(grid["mesh"], time)
+        # TODO: some grids that are not used in coupling currently do not have grid["mesh"]
+        try:
+            grid["mesh"]
+        except KeyError:
+            grid["mesh"] = None  # add dummy to make coupler.setup pass.
+        coupler.setup(grid, time)  # TODO: factor out as soon as all grids have grid["mesh"]
 
     # Time-loop
     logger.info("Entering time loop...")
