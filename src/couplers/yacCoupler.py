@@ -5,7 +5,6 @@
 import yac
 import numpy as np
 from dataclasses import dataclass
-from collections import namedtuple
 
 from ebfm import logging
 
@@ -29,12 +28,19 @@ field {name}:
 
 @dataclass
 class FieldDefinition:
-    name: str
+    name: str  # name of the field
     exchange_type: yac.ExchangeType = None  # optional for consistency checks by model configuration
     metadata: str = None  # optional to allow model providing metadata
 
 
+@dataclass
+class Timestep:
+    value: str  # value of the timestep in specified format
+    format: yac.TimeUnit  # format of the timestep value
+
+
 # TODO: Get hard-coded data below from dummies/EBFM/ebfm-config.yaml
+# TODO: Move Timestep inside FieldDefinition (would allow having different timesteps per field)
 all_field_definitions = {
     Component.elmer_ice: [
         FieldDefinition(
@@ -224,14 +230,13 @@ class YACCoupler(Coupler):
         self.grid.set_global_index(grid.vertex_ids, yac.Location.CORNER)
         self.corner_points = self.grid.def_points(yac.Location.CORNER, grid.lon, grid.lat)
 
-    def _add_couples(self, time: Dict[str, float]):
+    def _add_couples(self, timestep: Timestep):
         """
         Adds coupling definitions to the Coupler interface.
 
-        @param[in] time dictionary with time parameters, e.g. {'tn': 12, 'dt': 0.125}
+        @param[in] timestep Timestep object representing the timestep size of the fields
         """
-
-        self._construct_coupling_pre_sync(time)
+        self._construct_coupling_pre_sync(timestep)
 
         self.interface.sync_def()
 
@@ -239,11 +244,11 @@ class YACCoupler(Coupler):
 
         self.interface.enddef()
 
-    def _construct_coupling_pre_sync(self, time: Dict[str, float]):
+    def _construct_coupling_pre_sync(self, timestep: Timestep):
         """
         Constructs the coupling interface with YAC.
 
-        @param[in] time dictionary with time parameters, e.g. {'tn': 12, 'dt': 0.125}
+        @param[in] timestep Timestep object representing the timestep size of the fields
         """
 
         assert self.fields == {}, "Coupling fields have already been constructed."
@@ -251,14 +256,14 @@ class YACCoupler(Coupler):
         for component, is_coupled in self._couples_to.items():
             if is_coupled:
                 assert self.fields.get(component) is None, f"Coupling to {component=} has already been constructed."
-                self.fields[component] = self._construct_coupling_to(component, time)
+                self.fields[component] = self._construct_coupling_to(component, timestep)
 
-    def _construct_coupling_to(self, component: Component, time: Dict[str, float]) -> List[yac.Field]:
+    def _construct_coupling_to(self, component: Component, timestep: Timestep) -> List[yac.Field]:
         """
         Constructs coupling fields to a specific Component.
 
         @param[in] component component to construct coupling to
-        @param[in] time dictionary with time parameters, e.g. {'tn': 12, 'dt': 0.125}
+        @param[in] timestep Timestep object representing the timestep size of the field
 
         @returns List of yac.Field objects representing the coupling fields
         """
@@ -267,11 +272,7 @@ class YACCoupler(Coupler):
             component
         ], f"Cannot construct coupling to {component=} because {self._couples_to[component]=}'."
 
-        timestep_value = days_to_iso(time["dt"])
         collection_size = 1  # TODO: Dummy value for now; make configurable if needed
-
-        Timestep = namedtuple("Timestep", ["value", "format"])
-        timestep = Timestep(value=timestep_value, format=yac.TimeUnit.ISO_FORMAT)
 
         fields = list()
 
@@ -355,4 +356,8 @@ class YACCoupler(Coupler):
         grid_name = "ebfm_grid"  # TODO: get from ebfm_coupling_config?
 
         self._add_grid(grid_name, grid)
-        self._add_couples(time)
+
+        timestep_value = days_to_iso(time["dt"])
+        timestep = Timestep(value=timestep_value, format=yac.TimeUnit.ISO_FORMAT)
+
+        self._add_couples(timestep)
