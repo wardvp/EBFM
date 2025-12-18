@@ -4,6 +4,7 @@
 
 import yac
 import numpy as np
+from dataclasses import dataclass
 from collections import namedtuple
 
 from ebfm import logging
@@ -25,7 +26,13 @@ field {name}:
    - metadata:  {metadata}
 """
 
-FieldDefinition = namedtuple("FieldDefinition", ["exchange_type", "name", "metadata"])
+
+@dataclass
+class FieldDefinition:
+    name: str
+    exchange_type: yac.ExchangeType = None  # optional for consistency checks by model configuration
+    metadata: str = None  # optional to allow model providing metadata
+
 
 # TODO: Get hard-coded data below from dummies/EBFM/ebfm-config.yaml
 all_field_definitions = {
@@ -277,12 +284,23 @@ class YACCoupler(Coupler):
                 timestep.value,
                 timestep.format,
             )
-            self.interface.def_field_metadata(
-                field.component_name,
-                field.grid_name,
-                field_definition.name,
-                field_definition.metadata.encode("utf-8"),
-            )
+
+            # add optional metadata
+            if field_definition.metadata:
+                self.interface.def_field_metadata(
+                    field.component_name,
+                    field.grid_name,
+                    field_definition.name,
+                    field_definition.metadata.encode("utf-8"),
+                )
+
+            # perform optional consistency check
+            if field_definition.exchange_type:
+                field_role = self.interface.get_field_role(field.component_name, field.grid_name, field.name)
+                assert field_role == field_definition.exchange_type, (
+                    f"Field '{field_definition.name}' role mismatch: expected '{field_definition.exchange_type}', "
+                    f"got '{field_role}'."
+                )
 
             fields.append(field)
 
