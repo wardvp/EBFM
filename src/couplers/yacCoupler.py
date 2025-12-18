@@ -134,7 +134,10 @@ class YACCoupler(Coupler):
         logger.debug(f"YAC version is {yac.version()}")
         self.interface = yac.YAC()
         self.component_name = coupling_config.component_name
-        self.interface.read_config_yaml(str(coupling_config.coupler_config))
+
+        if coupling_config.coupler_config:
+            self.interface.read_config_yaml(str(coupling_config.coupler_config))
+
         self.component = self.interface.def_comp(self.component_name)
         self._couples_to[Component.icon_atmo] = coupling_config.couple_to_icon_atmo
         self._couples_to[Component.elmer_ice] = coupling_config.couple_to_elmer_ice
