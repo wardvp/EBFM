@@ -204,6 +204,8 @@ class YACCoupler(Coupler):
         @param[in] grid Grid object used by EBFM where coupling happens
         """
 
+        assert not self.grid, "Grid has already been added to YACCoupler."
+
         self.grid = yac.UnstructuredGrid(
             grid_name,
             np.full(len(grid.cell_ids), grid.num_vertices_per_cell),
@@ -237,17 +239,21 @@ class YACCoupler(Coupler):
         @param[in] time dictionary with time parameters, e.g. {'tn': 12, 'dt': 0.125}
         """
 
+        assert self.fields == {}, "Coupling fields have already been constructed."
+
         for component, is_coupled in self._couples_to.items():
             if is_coupled:
-                self.fields[component] = list()  # create empty list for fields of current component
-                self._construct_coupling_to(component, time)
+                assert self.fields.get(component) is None, f"Coupling to {component=} has already been constructed."
+                self.fields[component] = self._construct_coupling_to(component, time)
 
-    def _construct_coupling_to(self, component: Component, time: Dict[str, float]):
+    def _construct_coupling_to(self, component: Component, time: Dict[str, float]) -> List[yac.Field]:
         """
         Constructs coupling fields to a specific Component.
 
         @param[in] component component to construct coupling to
         @param[in] time dictionary with time parameters, e.g. {'tn': 12, 'dt': 0.125}
+
+        @returns List of yac.Field objects representing the coupling fields
         """
 
         assert self._couples_to[
@@ -259,6 +265,8 @@ class YACCoupler(Coupler):
 
         Timestep = namedtuple("Timestep", ["value", "format"])
         timestep = Timestep(value=timestep_value, format=yac.TimeUnit.ISO_FORMAT)
+
+        fields = list()
 
         for field_definition in all_field_definitions[component]:
             field = yac.Field.create(
@@ -276,7 +284,9 @@ class YACCoupler(Coupler):
                 field_definition.metadata.encode("utf-8"),
             )
 
-            self.fields[component].append(field)
+            fields.append(field)
+
+        return fields
 
     def _construct_coupling_post_sync(self):
         # after synchronisation or the end of the definition phase YAC can be queried about various information
