@@ -24,7 +24,7 @@ from mpi4py import MPI
 from typing import List
 
 try:
-    import coupling  # noqa: E402
+    from couplers.yacCoupler import YACCoupler  # noqa: E402
 
     coupling_supported = True
 except ImportError as e:
@@ -205,7 +205,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
 """
         )
     else:
-        from coupler import NoCoupler
+        from couplers.dummyCoupler import DummyCoupler
 
     # TODO: replace MPI.COMM_WORLD with communicator from ebfm; either from couplers comm splitting or default comm
     setup_logging(
@@ -225,7 +225,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
     logger.debug("Reading configuration and checking for consistency.")
 
     # TODO consider introducing an ebfm_adapter_config.yaml to be parsed alternatively/additionally to command line args
-    coupling_config = CouplingConfig(args, component_name="ebfm")
+    coupling_config = CouplingConfig(args, component_name="ebfm")  # TODO: get from EBFM's coupling configuration?
     grid_config = GridConfig(args)
     time_config = TimeConfig(args)
 
@@ -248,12 +248,16 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
     OUT, IN, OUTFILE = INIT.init_initial_conditions(C, grid, io, time)
 
     if coupling_config.defines_coupling():
-        # TODO: introduce minimal stub implementation
-        # TODO consider introducing an ebfm_adapter_config.yaml
-        coupler = coupling.init(coupling_config=coupling_config)
-        coupling.setup(coupler, grid["mesh"], time)
+        coupler = YACCoupler(coupling_config=coupling_config)
+        coupler.setup(grid["mesh"], time)
     else:
-        coupler = NoCoupler(component_name=coupling_config.component_name)
+        coupler = DummyCoupler(coupling_config=coupling_config)
+        # TODO: some grids that are not used in coupling currently do not have grid["mesh"]
+        try:
+            grid["mesh"]
+        except KeyError:
+            grid["mesh"] = None  # add dummy to make coupler.setup pass.
+        coupler.setup(grid, time)  # TODO: factor out as soon as all grids have grid["mesh"]
 
     # Time-loop
     logger.info("Entering time loop...")
@@ -340,7 +344,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
     logger.info("Time loop completed.")
 
     if coupler.has_coupling:
-        coupling.finalize(coupler)
+        coupler.finalize()
 
     logger.info("Closing down EBFM.")
 
