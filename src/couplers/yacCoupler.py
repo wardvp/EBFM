@@ -94,6 +94,33 @@ all_field_definitions = {
     ],
 }
 
+all_fields = {
+    Component.elmer_ice: set(
+        [
+            "smb",
+            "T_ice",
+            "runoff",
+            "h",
+            # 'dhdx',
+            # 'dhdy',
+        ]
+    ),
+    Component.icon_atmo: set(
+        [
+            # 'albedo',
+            "pr",
+            "pr_snow",
+            "rsds",
+            "rlds",
+            "clt",
+            "sfcwind",
+            "tas",
+            # 'huss',
+            # 'sfcPressure'
+        ]
+    ),
+}
+
 
 def days_to_iso(days: float) -> str:
     """
@@ -248,119 +275,48 @@ class YACCoupler(Coupler):
         return data
 
     def exchange(self, component_name: str, data_to_exchange: Dict[str, np.array]) -> Dict[str, np.array]:
-        # TODO: Make this more generic.
-        """
-        component = Component[component_name]  # raises KeyError if component_name is unexpected
-        self._exchange_with(component, data_to_exchange)  # must support all components in Component
-        """
-
         component = Component[component_name]
-        if component == Component.icon_atmo:
-            return self._exchange_icon_atmo(data_to_exchange)
-        elif component == Component.elmer_ice:
-            return self._exchange_elmer_ice(data_to_exchange)
-        else:
-            raise ValueError(f"Unknown component '{component}' for data exchange.")
+        return self._exchange_with(component, data_to_exchange)  # must support all components in Component
 
-    def _exchange_icon_atmo(self, put_data: Dict[str, np.array]) -> Dict[str, np.array]:
-        """Exchange data with ICON atmosphere component
+    def _exchange_with(self, component: Component, put_data: Dict[str, np.array]) -> Dict[str, np.array]:
+        """Exchange data with component
 
-        @param[in] put_data dictionary of field names and their data to be exchanged with ICON atmosphere component
+        @param[in] put_data dictionary of field names and their data to be exchanged with component
 
         @returns dictionary of exchanged field data
         """
-        component = Component.icon_atmo
         assert self._couples_to[
             component
         ], f"Cannot exchange data with {component=} because {self._couples_to[component]=}'."
 
-        icon_fields = set(
-            [
-                # 'albedo',
-                "pr",
-                "pr_snow",
-                "rsds",
-                "rlds",
-                "clt",
-                "sfcwind",
-                "tas",
-                # 'huss',
-                # 'sfcPressure'
-            ]
-        )
+        fields = all_fields[component]
 
         for field_name, field in self.source_fields.items():
-            logger.debug(f"Checking field {field_name} for ICON atmosphere exchange...")
-            if field_name in icon_fields:
+            logger.debug(f"Checking field {field_name} for {component.name} exchange...")
+            if field_name in fields:
                 role = self.interface.get_field_role(field.component_name, field.grid_name, field.name)
                 assert (
                     role == yac.ExchangeType.SOURCE
-                ), f"Field '{field_name}' is not a target field for ICON exchange, but has role '{role}'."
-                logger.debug(f"Sending field {field_name} to ICON atmosphere...")
+                ), f"Field '{field_name}' is not a target field for {component.name} exchange, but has role '{role}'."
+                logger.debug(f"Sending field {field_name} to {component.name}...")
                 self._put(field_name, put_data[field_name])
             else:
-                logger.debug(f"Skipping field {field_name} as it is not part of ICON atmosphere exchange.")
+                logger.debug(f"Skipping field {field_name} as it is not part of {component.name} exchange.")
 
         received_data = {}
         for field_name, field in self.target_fields.items():
-            logger.debug(f"Checking field {field_name} for ICON atmosphere exchange...")
-            if field_name in icon_fields:
+            logger.debug(f"Checking field {field_name} for {component.name} exchange...")
+            if field_name in fields:
                 role = self.interface.get_field_role(field.component_name, field.grid_name, field.name)
                 assert (
                     role == yac.ExchangeType.TARGET
-                ), f"Field '{field_name}' is not a target field for ICON exchange, but has role '{role}'."
-                logger.debug(f"Receiving field {field_name} from ICON atmosphere...")
+                ), f"Field '{field_name}' is not a target field for {component.name} exchange, but has role '{role}'."
+                logger.debug(f"Receiving field {field_name} from {component.name}...")
                 # Only get the first element, since we only have collection size of 1
                 received_data[field_name] = self._get(field_name)[0]
-                logger.debug(f"Received field '{field_name}' from ICON. Data: {received_data[field_name]}")
+                logger.debug(f"Received field '{field_name}' from {component.name}. Data: {received_data[field_name]}")
             else:
-                logger.debug(f"Skipping field {field_name} as it is not part of ICON atmosphere exchange.")
-
-        return received_data
-
-    def _exchange_elmer_ice(self, put_data: Dict[str, np.array]) -> Dict[str, np.array]:
-        """Exchange data with Elmer Ice component
-
-        @param[in] put_data dictionary of field names and their data to be exchanged with Elmer Ice component
-
-        @returns dictionary of exchanged field data
-        """
-        component = Component.elmer_ice
-        assert self._couples_to[
-            component
-        ], f"Cannot exchange data with {component=} because {self._couples_to[component]=}'."
-
-        # TODO: make configurable if needed
-        elmer_fields = set(
-            [
-                "smb",
-                "T_ice",
-                "runoff",
-                "h",
-                # 'dhdx',
-                # 'dhdy',
-            ]
-        )
-
-        for field_name, field in self.source_fields.items():
-            if field_name in elmer_fields:
-                role = self.interface.get_field_role(field.component_name, field.grid_name, field.name)
-                assert (
-                    role == yac.ExchangeType.SOURCE
-                ), f"Field '{field_name}' is not a target field for Elmer/Ice exchange, but has role '{role}'."
-                self._put(field_name, put_data[field_name])
-
-        received_data = {}
-        for field_name, field in self.target_fields.items():
-            if field_name in elmer_fields:
-                logger.debug(f"EBFM: {field.component_name}, {field.grid_name}, {field.name}")
-                role = self.interface.get_field_role(field.component_name, field.grid_name, field.name)
-                assert (
-                    role == yac.ExchangeType.TARGET
-                ), f"Field '{field_name}' is not a target field for Elmer/Ice exchange, but has role '{role}'."
-                # Only get the first element, since we only have collection size of 1
-                received_data[field_name] = self._get(field_name)[0]
-                logger.debug(f"Received field '{field_name}' from Elmer/Ice. Data: {received_data[field_name]}")
+                logger.debug(f"Skipping field {field_name} as it is not part of {component.name} exchange.")
 
         return received_data
 
