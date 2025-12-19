@@ -327,20 +327,24 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
             # IN['dhdy'] = data_from_elmer('dhdy')
 
         # Write output to files (only in uncoupled run and for unpartitioned grid)
-        if not grid["is_partitioned"] and not coupler.has_coupling:
+        # TODO: should be supported for all cases to avoid case distinction here
+        if not grid["is_partitioned"] and isinstance(coupler, DummyCoupler):
             if grid_config.grid_type is GridInputType.MATLAB:
                 io, OUTFILE = LOOP_write_to_file.main(OUTFILE, io, OUT, grid, t, time)
             else:
                 logger.warning("Skipping writing output to file for Elmer input grids.")
-        elif grid["is_partitioned"] or coupler.has_coupling:
+        elif grid["is_partitioned"] or not isinstance(coupler, DummyCoupler):
             logger.warning("Skipping writing output to file for coupled or partitioned runs.")
         else:
             logger.error("Unhandled case in output writing.")
             raise Exception("Unhandled case in output writing.")
 
     # Write restart file
-    if not grid["is_partitioned"] and not coupler.has_coupling:
+    # TODO: should be supported for all cases to avoid case distinction here
+    if not grid["is_partitioned"] and isinstance(coupler, DummyCoupler):
         FINAL_create_restart_file.main(OUT, io)
+    else:
+        logger.warning("Skipping writing of restart file for coupled and/or partitioned runs.")
 
     logger.info("Time loop completed.")
 
