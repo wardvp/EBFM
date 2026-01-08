@@ -11,18 +11,10 @@ from elmer.mesh import Mesh as Grid  # for now use an alias
 from ebfm.config import CouplingConfig
 
 import logging
-from enum import Enum, auto
+
+from coupling.components import Component
 
 logger = logging.getLogger(__name__)
-
-
-class Component(Enum):
-    """
-    Other components which this model can couple to
-    """
-
-    elmer_ice = auto()
-    icon_atmo = auto()
 
 
 class Coupler:

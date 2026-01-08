@@ -2,8 +2,9 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-from couplers import Coupler
-from couplers.base import Grid, Dict, CouplingConfig, Component
+from coupling.couplers import Coupler
+from coupling.components import Component
+from coupling.couplers.base import Grid, Dict, CouplingConfig
 
 import logging
 

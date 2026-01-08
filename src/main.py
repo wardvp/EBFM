@@ -24,7 +24,7 @@ from mpi4py import MPI
 from typing import List
 
 try:
-    from couplers.yacCoupler import YACCoupler  # noqa: E402
+    from coupling import YACCoupler  # noqa: E402
 
     coupling_supported = True
 except ImportError as e:
@@ -205,7 +205,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
 """
         )
     else:
-        from couplers.dummyCoupler import DummyCoupler
+        from coupling import DummyCoupler
 
     # TODO: replace MPI.COMM_WORLD with communicator from ebfm; either from couplers comm splitting or default comm
     setup_logging(
