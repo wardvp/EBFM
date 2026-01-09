@@ -4,12 +4,18 @@
 
 import yac
 import numpy as np
-from dataclasses import dataclass, replace
 
 from ebfm import logging
 
 from typing import Set, Callable
-from couplers.base import Coupler, Grid, Dict, CouplingConfig, Component
+from coupling.components import Component
+import coupling.components.icon_atmo
+import coupling.components.elmer_ice
+
+from coupling.couplers.base import Coupler, Grid, Dict, CouplingConfig
+
+# from coupling import Field  # TODO: rather use generic Field from coupling
+from coupling.couplers.yacField import Field
 
 # from ebfm.geometry import Grid  # TODO: consider introducing a new data structure native to EBFM?
 
@@ -24,68 +30,6 @@ field {name}:
    - timestep:  {timestep}
    - metadata:  {metadata}
 """
-
-
-@dataclass(frozen=True)
-class Timestep:
-    value: str  # value of the timestep in specified format
-    format: yac.TimeUnit  # format of the timestep value
-
-
-@dataclass(frozen=True)
-class Field:
-    """
-    Object for definition of a field to be exchanged via YAC.
-    """
-
-    name: str  # name of the field
-    coupled_component: Component  # component this field couples to
-    timestep: Timestep  # timestep of the field
-    metadata: str = None  # optional to allow model providing metadata
-    exchange_type: yac.ExchangeType = None  # optional for consistency checks by model configuration
-    yac_field: yac.Field = None  # optional if YAC field has been created
-
-    def construct_yac_field(
-        self, yac_interface: yac.YAC, yac_component: yac.Component, collection_size: int, corner_points: yac.Points
-    ) -> "Field":
-        """
-        Create a new Field instance with the provided YAC field.
-
-        @param[in] yac_interface handle to YAC interface
-        @param[in] yac_component handle to YAC component object
-        @param[in] collection_size size of the collection for this field
-        @param[in] corner_points yac.Points of the grid for this field
-
-        @returns New Field instance with the provided YAC field
-        """
-        assert not self.yac_field, f"Field '{self.name}' for component '{self.name}' has already been created in YAC."
-
-        yac_field = yac.Field.create(
-            self.name,
-            yac_component,
-            corner_points,
-            collection_size,
-            self.timestep.value,
-            self.timestep.format,
-        )
-
-        # add optional metadata
-        if self.metadata:
-            yac_interface.def_field_metadata(
-                yac_field.component_name,
-                yac_field.grid_name,
-                yac_field.name,
-                self.metadata.encode("utf-8"),
-            )
-
-        # perform optional consistency check
-        if self.exchange_type:
-            field_role = yac_interface.get_field_role(yac_field.component_name, yac_field.grid_name, yac_field.name)
-            assert field_role == self.exchange_type, (
-                f"Field '{self.name}' role mismatch: expected '{self.exchange_type}', " f"got '{field_role}'."
-            )
-
-        return replace(self, yac_field=yac_field)
 
 
 class FieldSet:
@@ -122,146 +66,6 @@ class FieldSet:
     def add(self, field: Field):
         assert field not in self._fields, f"Field {field} with name {field.name} already exists in FieldSet."
         self._fields.add(field)
-
-
-# TODO: Get hard-coded data below from dummies/EBFM/ebfm-config.yaml
-def get_field_definitions(time: Dict[str, float]) -> Set[Field]:
-    """
-    Get field definitions for EBFM coupling.
-
-    @param[in] time dictionary with time parameters, e.g. {'tn': 12, 'dt': 0.125}
-    """
-
-    timestep_value = days_to_iso(time["dt"])
-    timestep = Timestep(value=timestep_value, format=yac.TimeUnit.ISO_FORMAT)
-
-    return {
-        Field(
-            name="T_ice",
-            coupled_component=Component.elmer_ice,
-            timestep=timestep,
-            metadata="Near surface temperature at Ice surface (in K)",
-            exchange_type=yac.ExchangeType.SOURCE,
-        ),
-        Field(
-            name="smb",
-            coupled_component=Component.elmer_ice,
-            timestep=timestep,
-            metadata="??? (in ???)",
-            exchange_type=yac.ExchangeType.SOURCE,
-        ),
-        Field(
-            name="runoff",
-            coupled_component=Component.elmer_ice,
-            timestep=timestep,
-            metadata="Runoff (in ???)",
-            exchange_type=yac.ExchangeType.SOURCE,
-        ),
-        Field(
-            name="h",
-            coupled_component=Component.elmer_ice,
-            timestep=timestep,
-            metadata="Surface height (in m)",
-            exchange_type=yac.ExchangeType.TARGET,
-        ),
-        # Field(
-        #     name="dhdx",
-        #     component=Component.elmer_ice,
-        #     timestep=timestep,
-        #     metadata="Surface slope in x direction",
-        #     exchange_type=yac.ExchangeType.TARGET,
-        # ),
-        # Field(
-        #     name="dhdy",
-        #     component=Component.elmer_ice,
-        #     timestep=timestep,
-        #     metadata="Surface slope in y direction",
-        #     exchange_type=yac.ExchangeType.TARGET,
-        # ),
-        # Field(
-        #     name="albedo",
-        #     component=Component.icon_atmo,
-        #     timestep=timestep,
-        #     metadata="Albedo of the ice surface (in ???)",
-        #     exchange_type=yac.ExchangeType.SOURCE,
-        # ),
-        Field(
-            name="pr",
-            coupled_component=Component.icon_atmo,
-            timestep=timestep,
-            metadata="Precipitation rate (in kg m-2 s-1)",
-            exchange_type=yac.ExchangeType.TARGET,
-        ),
-        Field(
-            name="pr_snow",
-            coupled_component=Component.icon_atmo,
-            timestep=timestep,
-            metadata="Precipitation rate of snow (in kg m-2 s-1)",
-            exchange_type=yac.ExchangeType.TARGET,
-        ),
-        Field(
-            name="rsds",
-            coupled_component=Component.icon_atmo,
-            timestep=timestep,
-            metadata="Downward shortwave radiation flux (in W m-2)",
-            exchange_type=yac.ExchangeType.TARGET,
-        ),
-        Field(
-            name="rlds",
-            coupled_component=Component.icon_atmo,
-            timestep=timestep,
-            metadata="Downward longwave radiation flux (in W m-2)",
-            exchange_type=yac.ExchangeType.TARGET,
-        ),
-        Field(
-            name="sfcwind",
-            coupled_component=Component.icon_atmo,
-            timestep=timestep,
-            metadata="Wind speed at surface (in m s-1)",
-            exchange_type=yac.ExchangeType.TARGET,
-        ),
-        Field(
-            name="clt",
-            coupled_component=Component.icon_atmo,
-            timestep=timestep,
-            metadata="Cloud cover (in fraction)",
-            exchange_type=yac.ExchangeType.TARGET,
-        ),
-        Field(
-            name="tas",
-            coupled_component=Component.icon_atmo,
-            timestep=timestep,
-            metadata="Temperature at surface (in K)",
-            exchange_type=yac.ExchangeType.TARGET,
-        ),
-        # Field(
-        #     name="huss",
-        #     component=Component.icon_atmo,
-        #     timestep=timestep,
-        #     metadata="Specific humidity at surface (in kg kg-1)"
-        #     exchange_type=yac.ExchangeType.TARGET,
-        # ),
-        # Field(
-        #     name="sfcPressure",
-        #     component=Component.icon_atmo,
-        #     timestep=timestep,
-        #     metadata="Surface pressure (in Pa)"
-        #     exchange_type=yac.ExchangeType.TARGET,
-        # ),
-    }
-
-
-def days_to_iso(days: float) -> str:
-    """
-    Convert a time step in days to ISO 8601 format.
-
-    @param[in] days time step in days
-    @returns ISO 8601 formatted string representing the time step
-    """
-    import pandas as pd
-
-    dt = pd.Timedelta(days=days)
-    return dt.isoformat()
 
 
 class YACCoupler(Coupler):
@@ -304,7 +108,13 @@ class YACCoupler(Coupler):
 
         self._add_grid(grid_name, grid)
 
-        field_definitions = get_field_definitions(time)
+        field_definitions = set()
+
+        if self.has_coupling_to("icon_atmo"):
+            field_definitions |= coupling.components.icon_atmo.get_field_definitions(time)
+
+        if self.has_coupling_to("elmer_ice"):
+            field_definitions |= coupling.components.elmer_ice.get_field_definitions(time)
 
         self._add_couples(FieldSet(field_definitions))
 

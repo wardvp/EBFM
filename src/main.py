@@ -19,17 +19,11 @@ from ebfm.grid import GridInputType
 from ebfm.config import CouplingConfig, GridConfig, TimeConfig
 from ebfm.logger import Logger, setup_logging, log_levels_map, getLogger
 
+import coupling
+
 from mpi4py import MPI
 
 from typing import List
-
-try:
-    from couplers.yacCoupler import YACCoupler  # noqa: E402
-
-    coupling_supported = True
-except ImportError as e:
-    coupling_supported = False
-    coupling_import_error = e
 
 # logger for this module
 logger: Logger = None  # will be set later
@@ -192,20 +186,18 @@ def main():
         ebfm.print_version_and_exit()
 
     has_active_coupling_features = extract_active_coupling_features(args)
-    if has_active_coupling_features and not coupling_supported:
+    if has_active_coupling_features and not coupling.coupling_supported:
         raise RuntimeError(
             f"""
 Coupling requested via command line argument(s) {has_active_coupling_features}, but the 'coupling' module could not be
 imported due to the following error:
 
-{coupling_import_error}
+{coupling.coupling_supported_import_error}
 
 Hint: If you are missing 'yac', please install YAC and the python bindings as described under
 https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
 """
         )
-    else:
-        from couplers.dummyCoupler import DummyCoupler
 
     # TODO: replace MPI.COMM_WORLD with communicator from ebfm; either from couplers comm splitting or default comm
     setup_logging(
@@ -254,9 +246,9 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
         grid["mesh"] = None  # add dummy to make coupler.setup pass.
 
     if coupling_config.defines_coupling():
-        coupler = YACCoupler(coupling_config=coupling_config)
+        coupler = coupling.YACCoupler(coupling_config=coupling_config)
     else:
-        coupler = DummyCoupler(coupling_config=coupling_config)
+        coupler = coupling.DummyCoupler(coupling_config=coupling_config)
 
     coupler.setup(grid["mesh"], time)
 
@@ -277,6 +269,10 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
                 "albedo": OUT["albedo"],
             }
 
+            # TODO: refactor as follows
+            # data_from_icon = coupling.components.icon_atmo.exchange(data_to_icon)
+            # TODO: inside coupling.components.icon_atmo.exchange call Coupler.put / Coupler.get
+            # TODO: add put/get in Coupler abstract base class; remove exchange from Coupler base class
             data_from_icon = coupler.exchange("icon_atmo", data_to_icon)
 
             logger.debug("Done.")
@@ -316,6 +312,8 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
                 "T_ice": OUT["T_ice"],
                 "runoff": OUT["runoff"],
             }
+            # TODO: refactor as follows
+            # data_from_elmer = coupling.components.elmer_ice.exchange(data_to_elmer)
             data_from_elmer = coupler.exchange("elmer_ice", data_to_elmer)
             logger.debug("Done.")
             logger.debug("Received the following data from Elmer/Ice:", data_from_elmer)
@@ -328,12 +326,12 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
 
         # Write output to files (only in uncoupled run and for unpartitioned grid)
         # TODO: should be supported for all cases to avoid case distinction here
-        if not grid["is_partitioned"] and isinstance(coupler, DummyCoupler):
+        if not grid["is_partitioned"] and isinstance(coupler, coupling.DummyCoupler):
             if grid_config.grid_type is GridInputType.MATLAB:
                 io, OUTFILE = LOOP_write_to_file.main(OUTFILE, io, OUT, grid, t, time)
             else:
                 logger.warning("Skipping writing output to file for Elmer input grids.")
-        elif grid["is_partitioned"] or not isinstance(coupler, DummyCoupler):
+        elif grid["is_partitioned"] or not isinstance(coupler, coupling.DummyCoupler):
             logger.warning("Skipping writing output to file for coupled or partitioned runs.")
         else:
             logger.error("Unhandled case in output writing.")
@@ -341,7 +339,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
 
     # Write restart file
     # TODO: should be supported for all cases to avoid case distinction here
-    if not grid["is_partitioned"] and isinstance(coupler, DummyCoupler):
+    if not grid["is_partitioned"] and isinstance(coupler, coupling.DummyCoupler):
         FINAL_create_restart_file.main(OUT, io)
     else:
         logger.warning("Skipping writing of restart file for coupled and/or partitioned runs.")
