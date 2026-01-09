@@ -201,16 +201,10 @@ class YACCoupler(Coupler):
             FieldDefinition(
                 exchange_type=yac.ExchangeType.TARGET, name="tas", metadata="Temperature at surface (in K)"
             ),
-            # FieldDefinition(
-            #     exchange_type=yac.ExchangeType.TARGET,
-            #     name="huss",
-            #     metadata="Specific humidity at surface (in kg kg-1)"
-            # ),
-            # FieldDefinition(
-            #     exchange_type=yac.ExchangeType.TARGET,
-            #     name="sfcPressure",
-            #     metadata="Surface pressure (in Pa)"
-            # ),
+            FieldDefinition(
+                exchange_type=yac.ExchangeType.TARGET, name="huss", metadata="Specific humidity at surface (in kg kg-1)"
+            ),
+            FieldDefinition(exchange_type=yac.ExchangeType.TARGET, name="sfcpres", metadata="Surface pressure (in Pa)"),
         ]
 
         timestep_value = days_to_iso(time["dt"])
@@ -293,8 +287,8 @@ class YACCoupler(Coupler):
                 "clt",
                 "sfcwind",
                 "tas",
-                # 'huss',
-                # 'sfcPressure'
+                "sfcpres",
+                "huss",
             ]
         )
 
@@ -322,6 +316,8 @@ class YACCoupler(Coupler):
                 # Only get the first element, since we only have collection size of 1
                 received_data[field_name] = self._get(field_name)[0]
                 logger.debug(f"Received field '{field_name}' from ICON. Data: {received_data[field_name]}")
+                logger.debug(f"Type: {type(received_data[field_name])}")
+                logger.debug(f"Max value is: {received_data[field_name].max()}")
             else:
                 logger.debug(f"Skipping field {field_name} as it is not part of ICON atmosphere exchange.")
 
