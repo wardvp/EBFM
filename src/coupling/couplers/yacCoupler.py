@@ -151,7 +151,7 @@ class YACCoupler(Coupler):
         @param[in] data data to be exchanged
         """
 
-        field = self.get_field(self, component_name, field_name)
+        field = self.get_field(component_name, field_name)
 
         assert (
             field.exchange_type == yac.ExchangeType.SOURCE
@@ -172,7 +172,7 @@ class YACCoupler(Coupler):
         @returns field data
         """
 
-        field = self.get_field(self, component_name, field_name)
+        field = self.get_field(component_name, field_name)
 
         assert (
             field.exchange_type == yac.ExchangeType.TARGET
