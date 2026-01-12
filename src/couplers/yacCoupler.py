@@ -8,7 +8,7 @@ from dataclasses import dataclass, replace
 
 from ebfm import logging
 
-from typing import Set, Callable
+from typing import Set, Callable, Dict, Union
 from couplers.base import Coupler, Grid, Dict, CouplingConfig, Component
 
 # from ebfm.geometry import Grid  # TODO: consider introducing a new data structure native to EBFM?
@@ -289,7 +289,7 @@ class YACCoupler(Coupler):
         self._couples_to[Component.icon_atmo] = coupling_config.couple_to_icon_atmo
         self._couples_to[Component.elmer_ice] = coupling_config.couple_to_elmer_ice
 
-    def setup(self, grid: Dict | Grid, time: Dict[str, float]):
+    def setup(self, grid: Union[Dict, Grid], time: Dict[str, float]):
         """
         Setup the coupling interface
 
