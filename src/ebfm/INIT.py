@@ -192,7 +192,7 @@ def init_grid(grid, io, config: GridConfig):
             grid = read_dem_xios(config.dem_file, grid)
 
         if config.grid_type is GridInputType.ELMERXIOS:
-            min_thickness_glacier = 1.0  # minimum ice thickness to consider grid cell as glacier (m)
+            min_thickness_glacier = 0.0  # minimum ice thickness to consider grid cell as glacier (m)
 
             # treats grid cells as glacier where ice thickness exceeds threshold
             grid["mask"] = (grid["h"] > min_thickness_glacier).astype(int)
