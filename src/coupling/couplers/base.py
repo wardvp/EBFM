@@ -60,6 +60,27 @@ class Coupler:
         """
         raise NotImplementedError("add_couples method must be implemented in subclasses.")
 
+    def put(self, component_name: str, field_name: str, data: np.array):
+        """
+        Put data to another component
+
+        @param[in] component_name name of the component to put data to
+        @param[in] field_name name of the field to put data to
+        @param[in] data data to be exchanged
+        """
+        raise NotImplementedError("put method must be implemented in subclasses.")
+
+    def get(self, component_name: str, field_name: str) -> np.array:
+        """
+        Get data from another component
+
+        @param[in] component_name name of the component to get data from
+        @param[in] field_name name of the field to get data for
+
+        @returns field data
+        """
+        raise NotImplementedError("get method must be implemented in subclasses.")
+
     def exchange(self, component_name: str, data_to_exchange: Dict[str, np.array]) -> Dict[str, np.array]:
         """
         Exchange data with another component

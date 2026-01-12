@@ -118,6 +118,72 @@ class YACCoupler(Coupler):
 
         self._add_couples(FieldSet(field_definitions))
 
+    def get_field(self, component_name: str, field_name: str) -> Field:
+        """
+        Get Field object for given component and field name
+
+        @param[in] component_name name of the component
+        @param[in] field_name name of the field
+
+        @returns Field object
+        """
+
+        component = Component[component_name]
+
+        assert self._couples_to[
+            component
+        ], f"Cannot get field for {component=} because {self._couples_to[component]=}'."
+
+        comp_fields = self.fields.filter(lambda f: f.coupled_component == component and f.name == field_name).all()
+
+        assert (
+            len(comp_fields) == 1
+        ), f"Expected exactly one field for '{field_name}' from component '{component_name}', "
+
+        return comp_fields.pop()
+
+    def put(self, component_name: str, field_name: str, data: np.array):
+        """
+        Put data to another component
+
+        @param[in] component_name name of the component to put data to
+        @param[in] field_name name of the field to put data to
+        @param[in] data data to be exchanged
+        """
+
+        field = self.get_field(self, component_name, field_name)
+
+        assert (
+            field.exchange_type == yac.ExchangeType.SOURCE
+        ), f"Cannot put data for field '{field.name}' of component '{field.coupled_component}'. "
+        f"Field has to be a SOURCE field, but its '{field.exchange_type=}'."
+
+        logger.debug(f"Sending field {field.name} to {field.coupled_component}...")
+        field.yac_field.put(data)
+        logger.debug(f"Sending field {field.name} to {field.coupled_component} complete.")
+
+    def get(self, component_name: str, field_name: str) -> np.array:
+        """
+        Get data from another component
+
+        @param[in] component_name name of the component to get data from
+        @param[in] field_name name of the field to get data for
+
+        @returns field data
+        """
+
+        field = self.get_field(self, component_name, field_name)
+
+        assert (
+            field.exchange_type == yac.ExchangeType.TARGET
+        ), f"Cannot get data for field '{field.name}' of component '{field.coupled_component}'. "
+        f"Field has to be a TARGET field, but its '{field.exchange_type=}'."
+
+        logger.debug(f"Receiving field {field.name} from {field.coupled_component}...")
+        data, _ = field.yac_field.get()
+        logger.debug(f"Receiving field {field.name} from {field.coupled_component} complete.")
+        return data[0]
+
     def exchange(self, component_name: str, data_to_exchange: Dict[str, np.array]) -> Dict[str, np.array]:
         """
         Exchange data with component
@@ -136,17 +202,12 @@ class YACCoupler(Coupler):
         comp_fields = self.fields.filter(lambda f: f.coupled_component == component)
 
         for field in comp_fields.filter(lambda f: f.exchange_type == yac.ExchangeType.SOURCE):
-            logger.debug(f"Sending field {field.name} to {component.name}...")
-            field.yac_field.put(data_to_exchange[field.name])
-            logger.debug(f"Sending field {field.name} to {component.name} complete.")
+            self.put(component_name, field.name, data_to_exchange[field.name])
 
         received_data = {}
 
         for field in comp_fields.filter(lambda f: f.exchange_type == yac.ExchangeType.TARGET):
-            logger.debug(f"Receiving field {field.name} to {component.name}...")
-            data, _ = field.yac_field.get()
-            received_data[field.name] = data[0]
-            logger.debug(f"Receiving field {field.name} to {component.name} complete.")
+            received_data[field.name] = self.get(component_name, field.name)
 
         return received_data
 
