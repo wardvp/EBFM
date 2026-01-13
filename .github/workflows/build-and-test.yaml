@@ -39,7 +39,7 @@ jobs:
           ebfm --matlab-mesh examples/dem_and_mask.mat
 
   build-and-test-python-3-9-9:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout EBFM repository
         uses: actions/checkout@v3
