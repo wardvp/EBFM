@@ -43,7 +43,7 @@ class DummyCoupler(Coupler):
 
         @param[in] component_name name of the component to put data to
         @param[in] field_name name of the field to put data to
-        @param[in] data data to be exchanged
+        @param[in] data data to be sent
         """
         logger.debug(f"Put field {field_name} to {component_name}...")
         logger.debug("Do nothing for DummyCoupler.")

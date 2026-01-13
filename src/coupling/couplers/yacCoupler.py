@@ -138,7 +138,7 @@ class YACCoupler(Coupler):
 
         @param[in] component_name name of the component to put data to
         @param[in] field_name name of the field to put data to
-        @param[in] data data to be exchanged
+        @param[in] data data to be sent
         """
 
         field = self._get_field(component_name, field_name)
