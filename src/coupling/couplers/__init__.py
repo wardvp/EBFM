@@ -4,11 +4,8 @@
 
 from coupling.couplers.base import Coupler  # noqa: F401
 from coupling.couplers.dummyCoupler import DummyCoupler  # noqa: F401
+from coupling.couplers.helpers import coupling_supported
 
-yac_import_error: Exception = None
-
-try:
+if coupling_supported:
     from coupling.couplers.yacCoupler import YACCoupler  # noqa: F401
     from coupling.couplers.oasisCoupler import OASISCoupler  # noqa: F401
-except ImportError as e:
-    yac_import_error = e
