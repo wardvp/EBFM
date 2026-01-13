@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from coupling.couplers import Coupler
-from coupling.components import Component
 from coupling.couplers.base import Grid, Dict, CouplingConfig
 
 import logging
@@ -17,11 +16,11 @@ class DummyCoupler(Coupler):
     This can be used when no coupling is required.
     """
 
-    # DummyCoupler couples to none of the available components
-    _couples_to: Dict[Component, bool] = {c: False for c in Component}
-
     def __init__(self, coupling_config: CouplingConfig):
-        self.component_name = coupling_config.component_name
+        super().__init__(coupling_config)
+
+        # DummyCoupler couples to none of the available components
+        self._coupled_components = dict()
         logger.debug(f"DummyCoupler created for component '{self.component_name}'.")
 
     def setup(self, grid: Grid, time: Dict[str, float]):

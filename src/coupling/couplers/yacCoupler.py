@@ -8,9 +8,6 @@ import numpy as np
 from ebfm import logging
 
 from typing import Set, Callable
-from coupling.components import Component
-import coupling.components.icon_atmo
-import coupling.components.elmer_ice
 
 from coupling.couplers.base import Coupler, Grid, Dict, CouplingConfig
 
@@ -81,17 +78,14 @@ class YACCoupler(Coupler):
 
         @param[in] coupling_config coupling configuration of this component
         """
-
+        super().__init__(coupling_config)
         logger.debug(f"YAC version is {yac.version()}")
         self.interface = yac.YAC()
-        self.component_name = coupling_config.component_name
 
         if coupling_config.coupler_config:
             self.interface.read_config_yaml(str(coupling_config.coupler_config))
 
         self.component = self.interface.def_comp(self.component_name)
-        self._couples_to[Component.icon_atmo] = coupling_config.couple_to_icon_atmo
-        self._couples_to[Component.elmer_ice] = coupling_config.couple_to_elmer_ice
 
     def setup(self, grid: Dict | Grid, time: Dict[str, float]):
         """
@@ -110,11 +104,8 @@ class YACCoupler(Coupler):
 
         field_definitions = set()
 
-        if self.has_coupling_to("icon_atmo"):
-            field_definitions |= coupling.components.icon_atmo.get_field_definitions(time)
-
-        if self.has_coupling_to("elmer_ice"):
-            field_definitions |= coupling.components.elmer_ice.get_field_definitions(time)
+        for component in self._coupled_components.values():
+            field_definitions |= component.get_field_definitions(time)
 
         self._add_couples(FieldSet(field_definitions))
 
@@ -128,11 +119,11 @@ class YACCoupler(Coupler):
         @returns Field object
         """
 
-        component = Component[component_name]
+        assert self.has_coupling_to(
+            component_name
+        ), f"Cannot get field for {component_name} because no coupling exists."
 
-        assert self._couples_to[
-            component
-        ], f"Cannot get field for {component=} because {self._couples_to[component]=}'."
+        component = self._coupled_components[component_name]
 
         comp_fields = self.fields.filter(lambda f: f.coupled_component == component and f.name == field_name).all()
 
@@ -193,11 +184,11 @@ class YACCoupler(Coupler):
         @returns dictionary of exchanged field data
         """
 
-        component = Component[component_name]
+        assert self.has_coupling_to(
+            component_name
+        ), f"Cannot exchange data with {component_name} because no coupling exists."
 
-        assert self._couples_to[
-            component
-        ], f"Cannot exchange data with {component=} because {self._couples_to[component]=}'."
+        component = self._coupled_components[component_name]
 
         comp_fields = self.fields.filter(lambda f: f.coupled_component == component)
 
@@ -267,9 +258,9 @@ class YACCoupler(Coupler):
         collection_size = 1  # TODO: Dummy value for now; make configurable if needed
 
         for field in field_definitions:
-            assert self._couples_to[
-                field.coupled_component
-            ], f"Cannot add field '{field.name}' for uncoupled component '{field.coupled_component.name}'."
+            assert self.has_coupling_to(
+                field.coupled_component.name
+            ), f"Cannot add field '{field.name}' for uncoupled component '{field.coupled_component.name}'."
 
             yac_field = field.construct_yac_field(self.interface, self.component, collection_size, self.corner_points)
             self.fields.add(yac_field)

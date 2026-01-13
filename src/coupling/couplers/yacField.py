@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-from coupling.components import Component
+from coupling.components.base import Component
 from dataclasses import dataclass, replace
 import yac  # should not be needed here. Maybe consider actually having a YACField inherit from Field?
 

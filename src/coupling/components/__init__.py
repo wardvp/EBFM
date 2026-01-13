@@ -2,13 +2,6 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-from enum import Enum, auto
-
-
-class Component(Enum):
-    """
-    Other components which this model can couple to
-    """
-
-    elmer_ice = auto()
-    icon_atmo = auto()
+from coupling.components.base import Component  # noqa: F401
+from coupling.components.icon_atmo import IconAtmo  # noqa: F401
+from coupling.components.elmer_ice import ElmerIce  # noqa: F401

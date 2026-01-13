@@ -12,19 +12,33 @@ from ebfm.config import CouplingConfig
 
 import logging
 
-from coupling.components import Component
+from abc import ABC, abstractmethod
+from coupling.components import Component, ElmerIce, IconAtmo
 
 logger = logging.getLogger(__name__)
 
 
-class Coupler:
+class Coupler(ABC):
     """
     Abstract base class for couplers. Implements the strategy pattern to support different coupling libraries.
     """
 
-    component_name: str  # name of this component in the coupler configuration
+    def __init__(self, coupling_config: CouplingConfig):
+        """
+        Create Coupler object
 
-    _couples_to: Dict[Component, bool] = {}  # dict gives information whether to couple with given component
+        @param[in] coupling_config configuration of the coupling
+        """
+        self.component_name: str = coupling_config.component_name  # name of this component in the coupler configuration
+        self._coupled_components: Dict[str, Component] = {}
+
+        if coupling_config.couple_to_elmer_ice:
+            elmer_comp = ElmerIce(self)
+            self._coupled_components[elmer_comp.name] = elmer_comp
+
+        if coupling_config.couple_to_icon_atmo:
+            icon_comp = IconAtmo(self)
+            self._coupled_components[icon_comp.name] = icon_comp
 
     def has_coupling_to(self, component_name: str) -> bool:
         """
@@ -34,32 +48,27 @@ class Coupler:
 
         @returns True if coupling to the specified component is enabled, False otherwise
         """
-        component = Component[component_name]
-        return self._couples_to[component]
+        return component_name in self._coupled_components
 
-    def __init__(self, coupling_config: CouplingConfig):
-        """
-        Create Coupler object
-
-        @param[in] coupling_config configuration of the coupling
-        """
-        raise NotImplementedError("Coupler is an abstract base class and cannot be instantiated directly.")
-
+    @abstractmethod
     def setup(self, grid: Grid, time: Dict[str, float]):
         raise NotImplementedError("setup method must be implemented in subclasses.")
 
+    @abstractmethod
     def _add_grid(self, grid_name: str, grid: Grid):
         """
         Add grid to the Coupler interface
         """
         raise NotImplementedError("add_grid method must be implemented in subclasses.")
 
+    @abstractmethod
     def _add_couples(self, time: Dict[str, float]):
         """
         Add coupling definitions to the Coupler interface
         """
         raise NotImplementedError("add_couples method must be implemented in subclasses.")
 
+    @abstractmethod
     def put(self, component_name: str, field_name: str, data: np.array):
         """
         Put data to another component
@@ -70,6 +79,7 @@ class Coupler:
         """
         raise NotImplementedError("put method must be implemented in subclasses.")
 
+    @abstractmethod
     def get(self, component_name: str, field_name: str) -> np.array:
         """
         Get data from another component
@@ -81,6 +91,7 @@ class Coupler:
         """
         raise NotImplementedError("get method must be implemented in subclasses.")
 
+    @abstractmethod
     def exchange(self, component_name: str, data_to_exchange: Dict[str, np.array]) -> Dict[str, np.array]:
         """
         Exchange data with another component
@@ -92,6 +103,7 @@ class Coupler:
         """
         raise NotImplementedError("Generic exchange method is not implemented. Use specific exchange methods.")
 
+    @abstractmethod
     def finalize(self):
         """
         Finalize the coupling interface
