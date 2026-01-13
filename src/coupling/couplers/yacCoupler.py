@@ -109,7 +109,7 @@ class YACCoupler(Coupler):
 
         self._add_couples(FieldSet(field_definitions))
 
-    def get_field(self, component_name: str, field_name: str) -> Field:
+    def _get_field(self, component_name: str, field_name: str) -> Field:
         """
         Get Field object for given component and field name
 
@@ -142,7 +142,7 @@ class YACCoupler(Coupler):
         @param[in] data data to be exchanged
         """
 
-        field = self.get_field(component_name, field_name)
+        field = self._get_field(component_name, field_name)
 
         assert (
             field.exchange_type == yac.ExchangeType.SOURCE
@@ -163,7 +163,7 @@ class YACCoupler(Coupler):
         @returns field data
         """
 
-        field = self.get_field(component_name, field_name)
+        field = self._get_field(component_name, field_name)
 
         assert (
             field.exchange_type == yac.ExchangeType.TARGET
@@ -174,23 +174,6 @@ class YACCoupler(Coupler):
         data, _ = field.yac_field.get()
         logger.debug(f"Receiving field {field.name} from {field.coupled_component.name} complete.")
         return data[0]
-
-    def exchange(self, component_name: str, data_to_exchange: Dict[str, np.array]) -> Dict[str, np.array]:
-        """
-        Exchange data with component
-
-        @param[in] data_to_exchange dictionary of field names and their data to be exchanged with component
-
-        @returns dictionary of exchanged field data
-        """
-
-        assert self.has_coupling_to(
-            component_name
-        ), f"Cannot exchange data with {component_name} because no coupling exists."
-
-        component = self._coupled_components[component_name]
-
-        return component.exchange(data_to_exchange)
 
     def finalize(self):
         """

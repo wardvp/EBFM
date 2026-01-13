@@ -60,17 +60,6 @@ class DummyCoupler(Coupler):
         logger.debug(f"Get field {field_name} from {component_name}...")
         logger.debug("Do nothing for DummyCoupler.")
 
-    def exchange(self, component_name: str, data_to_exchange: Dict[str, np.array]) -> Dict[str, np.array]:
-        """
-        Exchange data with component
-
-        @param[in] data_to_exchange dictionary of field names and their data to be exchanged with component
-
-        @returns dictionary of exchanged field data
-        """
-        logger.debug(f"Exchange data with {component_name}...")
-        logger.debug("Do nothing for DummyCoupler.")
-
     def finalize(self):
         """Finalize the coupling interface (does nothing for DummyCoupler)"""
         logger.debug("Finalizing coupling...")

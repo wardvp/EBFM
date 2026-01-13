@@ -263,17 +263,14 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
         # Read and prepare climate input
         if coupler.has_coupling_to("icon_atmo"):
             # Exchange data with ICON
+            icon_atmo = coupler.get_component("icon_atmo")
             logger.info("Data exchange with ICON")
             logger.debug("Started...")
             data_to_icon = {
                 "albedo": OUT["albedo"],
             }
 
-            # TODO: refactor as follows
-            # data_from_icon = coupling.components.icon_atmo.exchange(data_to_icon)
-            # TODO: inside coupling.components.icon_atmo.exchange call Coupler.put / Coupler.get
-            # TODO: add put/get in Coupler abstract base class; remove exchange from Coupler base class
-            data_from_icon = coupler.exchange("icon_atmo", data_to_icon)
+            data_from_icon = icon_atmo.exchange(data_to_icon)
 
             logger.debug("Done.")
             logger.debug("Received the following data from ICON:", data_from_icon)
@@ -303,6 +300,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
         OUT = LOOP_mass_balance.main(OUT, IN, C)
 
         if coupler.has_coupling_to("elmer_ice"):
+            elmer_ice = coupler.get_component("elmer_ice")
             # Exchange data with Elmer
             logger.info("Data exchange with Elmer/Ice")
             logger.debug("Started...")
@@ -312,9 +310,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
                 "T_ice": OUT["T_ice"],
                 "runoff": OUT["runoff"],
             }
-            # TODO: refactor as follows
-            # data_from_elmer = coupling.components.elmer_ice.exchange(data_to_elmer)
-            data_from_elmer = coupler.exchange("elmer_ice", data_to_elmer)
+            data_from_elmer = elmer_ice.exchange(data_to_elmer)
             logger.debug("Done.")
             logger.debug("Received the following data from Elmer/Ice:", data_from_elmer)
 

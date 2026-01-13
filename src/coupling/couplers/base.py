@@ -58,6 +58,20 @@ class Coupler(ABC):
         """
         return component_name in self._coupled_components
 
+    def get_component(self, component_name: str) -> Component:
+        """
+        Get the component object for a specific coupled component
+
+        @param[in] component_name name of the component to get
+
+        @returns Component object for the specified component
+
+        @raises KeyError if the specified component is not coupled
+        """
+        if not self.has_coupling_to(component_name):
+            raise KeyError(f"Coupling to component '{component_name}' is not enabled.")
+        return self._coupled_components[component_name]
+
     @abstractmethod
     def setup(self, grid: Grid, time: Dict[str, float]):
         raise NotImplementedError("setup method must be implemented in subclasses.")
@@ -96,18 +110,6 @@ class Coupler(ABC):
         @returns field data
         """
         raise NotImplementedError("get method must be implemented in subclasses.")
-
-    @abstractmethod
-    def exchange(self, component_name: str, data_to_exchange: Dict[str, np.array]) -> Dict[str, np.array]:
-        """
-        Exchange data with another component
-
-        @param[in] component_name name of the component to exchange data with
-        @param[in] data_to_exchange dictionary of field names and their data to be exchanged
-
-        @returns dictionary of exchanged field data
-        """
-        raise NotImplementedError("Generic exchange method is not implemented. Use specific exchange methods.")
 
     @abstractmethod
     def finalize(self):
