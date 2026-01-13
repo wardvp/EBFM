@@ -2,10 +2,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-from typing import Dict, Set, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from coupling.couplers.base import Coupler
+from typing import Dict, Set
 
 from coupling.components.base import Component
 
@@ -23,8 +20,8 @@ class ElmerIce(Component):
 
     name = "elmer_ice"
 
-    def __init__(self, coupler: "Coupler"):
-        super().__init__(coupler)
+    def __init__(self):
+        super().__init__()
 
     def get_field_definitions(self, time: Dict[str, float]) -> Set[Field]:
         """
