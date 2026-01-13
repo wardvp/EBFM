@@ -9,7 +9,7 @@ import numpy as np
 
 if TYPE_CHECKING:
     from coupling.couplers.base import Coupler
-    from coupling.couplers.yacField import Field
+    from coupling.fields.yacField import Field
 
 
 class Component(ABC):

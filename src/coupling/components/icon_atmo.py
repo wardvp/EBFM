@@ -10,11 +10,13 @@ if TYPE_CHECKING:
 
 from coupling.components.base import Component
 
-# from coupling import Field  # TODO: rather use generic Field from coupling
-# TODO: Try to remove YAC specific imports from here
-from coupling.couplers.yacField import Field
-from coupling.couplers.yacField import Timestep, days_to_iso
-import yac
+from coupling.fields import Field
+from coupling.couplers.helpers import coupling_supported
+
+if coupling_supported:
+    # TODO: Try to remove YAC specific imports from here
+    import yac
+    from coupling.fields.yacField import YACField, Timestep, days_to_iso
 
 
 class IconAtmo(Component):
@@ -31,75 +33,76 @@ class IconAtmo(Component):
         """
         Get field definitions for EBFM coupling to IconAtmo using YAC coupler.
         """
+        assert coupling_supported, "Coupling support is required for YAC fields."
 
         timestep_value = days_to_iso(time["dt"])
         timestep = Timestep(value=timestep_value, format=yac.TimeUnit.ISO_FORMAT)
 
         return {
-            # Field(
+            # YACField(
             #     name="albedo",
             #     coupled_component=self,
             #     timestep=timestep,
             #     metadata="Albedo of the ice surface (in ???)",
             #     exchange_type=yac.ExchangeType.SOURCE,
             # ),
-            Field(
+            YACField(
                 name="pr",
                 coupled_component=self,
                 timestep=timestep,
                 metadata="Precipitation rate (in kg m-2 s-1)",
                 exchange_type=yac.ExchangeType.TARGET,
             ),
-            Field(
+            YACField(
                 name="pr_snow",
                 coupled_component=self,
                 timestep=timestep,
                 metadata="Precipitation rate of snow (in kg m-2 s-1)",
                 exchange_type=yac.ExchangeType.TARGET,
             ),
-            Field(
+            YACField(
                 name="rsds",
                 coupled_component=self,
                 timestep=timestep,
                 metadata="Downward shortwave radiation flux (in W m-2)",
                 exchange_type=yac.ExchangeType.TARGET,
             ),
-            Field(
+            YACField(
                 name="rlds",
                 coupled_component=self,
                 timestep=timestep,
                 metadata="Downward longwave radiation flux (in W m-2)",
                 exchange_type=yac.ExchangeType.TARGET,
             ),
-            Field(
+            YACField(
                 name="sfcwind",
                 coupled_component=self,
                 timestep=timestep,
                 metadata="Wind speed at surface (in m s-1)",
                 exchange_type=yac.ExchangeType.TARGET,
             ),
-            Field(
+            YACField(
                 name="clt",
                 coupled_component=self,
                 timestep=timestep,
                 metadata="Cloud cover (in fraction)",
                 exchange_type=yac.ExchangeType.TARGET,
             ),
-            Field(
+            YACField(
                 name="tas",
                 coupled_component=self,
                 timestep=timestep,
                 metadata="Temperature at surface (in K)",
                 exchange_type=yac.ExchangeType.TARGET,
             ),
-            # Field(
+            # YACField(
             #     name="huss",
             #     component=self,
             #     timestep=timestep,
             #     metadata="Specific humidity at surface (in kg kg-1)"
             #     exchange_type=yac.ExchangeType.TARGET,
             # ),
-            # Field(
+            # YACField(
             #     name="sfcPressure",
             #     component=self,
             #     timestep=timestep,
@@ -116,6 +119,8 @@ class IconAtmo(Component):
 
         @returns dictionary of received field data
         """
+        assert coupling_supported, "Coupling support is required for YAC exchange."
+
         received_data: Dict[str, np.array] = {}
 
         # Put data to IconAtmo

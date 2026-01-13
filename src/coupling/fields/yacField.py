@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-from coupling.components.base import Component
+from coupling.fields.base import Field
 from dataclasses import dataclass, replace
 import yac  # should not be needed here. Maybe consider actually having a YACField inherit from Field?
 
@@ -27,14 +27,11 @@ def days_to_iso(days: float) -> str:
 
 
 @dataclass(frozen=True)
-class Field:
+class YACField(Field):
     """
     Object for definition of a field to be exchanged via YAC.
     """
 
-    name: str  # name of the field
-    # TODO: remove coupler_component and directly store fields in coupling.components.Component?
-    coupled_component: Component  # component this field couples to
     timestep: Timestep  # timestep of the field
     metadata: str = None  # optional to allow model providing metadata
     exchange_type: yac.ExchangeType = None  # optional for consistency checks by model configuration

@@ -10,11 +10,13 @@ if TYPE_CHECKING:
 
 from coupling.components.base import Component
 
-# from coupling import Field  # TODO: rather use generic Field from coupling
-# TODO: Try to remove YAC specific imports from here
-from coupling.couplers.yacField import Field
-from coupling.couplers.yacField import Timestep, days_to_iso
-import yac
+from coupling.fields import Field
+from coupling.couplers.helpers import coupling_supported
+
+if coupling_supported:
+    # TODO: Try to remove YAC specific imports from here
+    import yac
+    from coupling.fields.yacField import YACField, Timestep, days_to_iso
 
 
 class ElmerIce(Component):
@@ -31,47 +33,48 @@ class ElmerIce(Component):
         """
         Get field definitions for EBFM coupling to Elmer/Ice using YAC coupler.
         """
+        assert coupling_supported, "Coupling support is required for YAC fields."
 
         timestep_value = days_to_iso(time["dt"])
         timestep = Timestep(value=timestep_value, format=yac.TimeUnit.ISO_FORMAT)
 
         return {
-            Field(
+            YACField(
                 name="T_ice",
                 coupled_component=self,
                 timestep=timestep,
                 metadata="Near surface temperature at Ice surface (in K)",
                 exchange_type=yac.ExchangeType.SOURCE,
             ),
-            Field(
+            YACField(
                 name="smb",
                 coupled_component=self,
                 timestep=timestep,
                 metadata="??? (in ???)",
                 exchange_type=yac.ExchangeType.SOURCE,
             ),
-            Field(
+            YACField(
                 name="runoff",
                 coupled_component=self,
                 timestep=timestep,
                 metadata="Runoff (in ???)",
                 exchange_type=yac.ExchangeType.SOURCE,
             ),
-            Field(
+            YACField(
                 name="h",
                 coupled_component=self,
                 timestep=timestep,
                 metadata="Surface height (in m)",
                 exchange_type=yac.ExchangeType.TARGET,
             ),
-            # Field(
+            # YACField(
             #     name="dhdx",
             #     coupled_component=self,
             #     timestep=timestep,
             #     metadata="Surface slope in x direction",
             #     exchange_type=yac.ExchangeType.TARGET,
             # ),
-            # Field(
+            # YACField(
             #     name="dhdy",
             #     coupled_component=self,
             #     timestep=timestep,
@@ -88,6 +91,8 @@ class ElmerIce(Component):
 
         @returns dictionary of received field data
         """
+        assert coupling_supported, "Coupling support is required for YAC exchange."
+
         received_data: Dict[str, np.array] = {}
 
         # Put data to Elmer/Ice

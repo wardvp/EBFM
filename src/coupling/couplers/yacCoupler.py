@@ -7,12 +7,11 @@ import numpy as np
 
 from ebfm import logging
 
-from typing import Set, Callable
-
 from coupling.couplers.base import Coupler, Grid, Dict, CouplingConfig
 
 # from coupling import Field  # TODO: rather use generic Field from coupling
-from coupling.couplers.yacField import Field
+from coupling.fields import FieldSet
+from coupling.fields import YACField as Field
 
 # from ebfm.geometry import Grid  # TODO: consider introducing a new data structure native to EBFM?
 
@@ -27,42 +26,6 @@ field {name}:
    - timestep:  {timestep}
    - metadata:  {metadata}
 """
-
-
-class FieldSet:
-    """
-    Set of fields.
-
-    Can be used to collect fields and perform filtering operations for components, exchange types, etc.
-
-    Example:
-        fields = FieldSet()
-        fields.add(Field(..., exchange_type=yac.ExchangeType.SOURCE))
-        fields.add(Field(..., exchange_type=yac.ExchangeType.TARGET))
-        source_fields = fields.filter(lambda f: f.exchange_type == yac.ExchangeType.SOURCE)
-    """
-
-    def __init__(self, fields: Set[Field] = None):
-        """
-        Initialize FieldSet.
-        """
-        self._fields = fields if fields is not None else set()
-
-    def __iter__(self):
-        return iter(self._fields)
-
-    def is_empty(self) -> bool:
-        return len(self._fields) == 0
-
-    def all(self) -> Set[Field]:
-        return set(self._fields)
-
-    def filter(self, condition: Callable[[Field], bool]) -> "FieldSet":
-        return FieldSet(set(d for d in self._fields if condition(d)))
-
-    def add(self, field: Field):
-        assert field not in self._fields, f"Field {field} with name {field.name} already exists in FieldSet."
-        self._fields.add(field)
 
 
 class YACCoupler(Coupler):
