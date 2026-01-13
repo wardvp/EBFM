@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+import numpy as np
+
 from coupling.couplers import Coupler
 from coupling.couplers.base import Grid, Dict, CouplingConfig
 
@@ -33,6 +35,40 @@ class DummyCoupler(Coupler):
         @param[in] time dictionary with time parameters, e.g. {'tn': 12, 'dt': 0.125}
         """
         logger.debug("Setup coupling...")
+        logger.debug("Do nothing for DummyCoupler.")
+
+    def put(self, component_name: str, field_name: str, data: np.array):
+        """
+        Put data to another component
+
+        @param[in] component_name name of the component to put data to
+        @param[in] field_name name of the field to put data to
+        @param[in] data data to be exchanged
+        """
+        logger.debug(f"Put field {field_name} to {component_name}...")
+        logger.debug("Do nothing for DummyCoupler.")
+
+    def get(self, component_name: str, field_name: str) -> np.array:
+        """
+        Get data from another component
+
+        @param[in] component_name name of the component to get data from
+        @param[in] field_name name of the field to get data for
+
+        @returns field data
+        """
+        logger.debug(f"Get field {field_name} from {component_name}...")
+        logger.debug("Do nothing for DummyCoupler.")
+
+    def exchange(self, component_name: str, data_to_exchange: Dict[str, np.array]) -> Dict[str, np.array]:
+        """
+        Exchange data with component
+
+        @param[in] data_to_exchange dictionary of field names and their data to be exchanged with component
+
+        @returns dictionary of exchanged field data
+        """
+        logger.debug(f"Exchange data with {component_name}...")
         logger.debug("Do nothing for DummyCoupler.")
 
     def finalize(self):

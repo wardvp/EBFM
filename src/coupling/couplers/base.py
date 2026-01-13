@@ -54,14 +54,12 @@ class Coupler(ABC):
     def setup(self, grid: Grid, time: Dict[str, float]):
         raise NotImplementedError("setup method must be implemented in subclasses.")
 
-    @abstractmethod
     def _add_grid(self, grid_name: str, grid: Grid):
         """
         Add grid to the Coupler interface
         """
         raise NotImplementedError("add_grid method must be implemented in subclasses.")
 
-    @abstractmethod
     def _add_couples(self, time: Dict[str, float]):
         """
         Add coupling definitions to the Coupler interface
