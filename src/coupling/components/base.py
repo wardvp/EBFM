@@ -7,6 +7,7 @@ from typing import Set, Dict, TYPE_CHECKING
 
 
 if TYPE_CHECKING:
+    from coupling.couplers.base import Coupler
     from coupling.couplers.yacField import Field
 
 
@@ -18,8 +19,24 @@ class Component(ABC):
 
     name: str  # name of this component
 
-    def __init__(self):
+    def __init__(self, coupler: "Coupler"):
+        self._coupler = coupler
         pass
+
+    def _uses_coupler(self, coupler_class_type) -> bool:
+        """
+        Check if the coupler is of a specific class type.
+
+        This function is provided to avoid importing coupling libraries in component modules which would result in a
+        circular dependency. You can check by providing the class name of the respective coupler
+
+        Example: self._uses_coupler("YACCoupler")
+
+        @param[in] coupler_class_type name of class type to check against
+
+        @returns True if the coupler is of the specified class type, False otherwise
+        """
+        return self._coupler.__class__.__name__ == coupler_class_type
 
     @abstractmethod
     def get_field_definitions(self, time: Dict[str, float]) -> Set["Field"]:

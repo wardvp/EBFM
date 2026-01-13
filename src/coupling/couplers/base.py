@@ -41,11 +41,11 @@ class Coupler(ABC):
 
         if coupling_supported:
             if coupling_config.couple_to_elmer_ice:
-                elmer_comp = ElmerIce()
+                elmer_comp = ElmerIce(self)
                 self._coupled_components[elmer_comp.name] = elmer_comp
 
             if coupling_config.couple_to_icon_atmo:
-                icon_comp = IconAtmo()
+                icon_comp = IconAtmo(self)
                 self._coupled_components[icon_comp.name] = icon_comp
 
     def has_coupling_to(self, component_name: str) -> bool:

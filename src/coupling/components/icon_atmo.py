@@ -2,7 +2,10 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-from typing import Dict, Set
+from typing import Dict, Set, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from coupling.couplers.base import Coupler
 
 from coupling.components.base import Component
 
@@ -20,14 +23,12 @@ class IconAtmo(Component):
 
     name = "icon_atmo"
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, coupler: "Coupler"):
+        super().__init__(coupler)
 
-    def get_field_definitions(self, time: Dict[str, float]) -> Set[Field]:
+    def _yac_field_definitions(self, time: Dict[str, float]) -> Set[Field]:
         """
-        Get field definitions for EBFM coupling.
-
-        @param[in] time dictionary with time parameters, e.g. {'tn': 12, 'dt': 0.125}
+        Get field definitions for EBFM coupling to IconAtmo using YAC coupler.
         """
 
         timestep_value = days_to_iso(time["dt"])
@@ -105,3 +106,18 @@ class IconAtmo(Component):
             #     exchange_type=yac.ExchangeType.TARGET,
             # ),
         }
+
+    def get_field_definitions(self, time: Dict[str, float]) -> Set[Field]:
+        """
+        Get field definitions for EBFM coupling.
+
+        @param[in] time dictionary with time parameters, e.g. {'tn': 12, 'dt': 0.125}
+        """
+
+        if self._uses_coupler("YACCoupler"):
+            return self._yac_field_definitions(time)
+        else:
+            raise NotImplementedError(
+                f"The component {self.name} was configured with the unsupported coupler {type(self._coupler)}."
+                "Note: ElmerIce component only supports YACCoupler at the moment. "
+            )
