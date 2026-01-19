@@ -19,17 +19,11 @@ from ebfm.grid import GridInputType
 from ebfm.config import CouplingConfig, GridConfig, TimeConfig
 from ebfm.logger import Logger, setup_logging, log_levels_map, getLogger
 
+import coupling
+
 from mpi4py import MPI
 
 from typing import List
-
-try:
-    import coupling  # noqa: E402
-
-    coupling_supported = True
-except ImportError as e:
-    coupling_supported = False
-    coupling_import_error = e
 
 # logger for this module
 logger: Logger = None  # will be set later
@@ -130,21 +124,24 @@ def main():
     time_group.add_argument(
         "--start-time",
         type=str,
-        help="Start time of the simulation in format 'DD-Mon-YYYY HH:MM'",
+        help="Start time of the simulation in format 'DD-Mon-YYYY HH:MM' "
+        "(i.e., time at the beginning of the first time step)",
         default="1-Jan-1979 00:00",
     )
 
     time_group.add_argument(
         "--end-time",
         type=str,
-        help="End time of the simulation in format 'DD-Mon-YYYY HH:MM'",
+        help="End time of the simulation in format 'DD-Mon-YYYY HH:MM' "
+        "(i.e., time at the end of the last time step)",
         default="2-Jan-1979 00:00",
     )
 
     time_group.add_argument(
         "--time-step",
         type=float,
-        help="Time step of the simulation in days, e.g., 0.125 for 3 hours.",
+        help="Time step of the simulation in days, e.g., 0.125 for 3 hours. "
+        "Note: The difference between end-time and start-time must be divisible by the time step.",
         default=0.125,
     )
 
@@ -189,20 +186,18 @@ def main():
         ebfm.print_version_and_exit()
 
     has_active_coupling_features = extract_active_coupling_features(args)
-    if has_active_coupling_features and not coupling_supported:
+    if has_active_coupling_features and not coupling.coupling_supported:
         raise RuntimeError(
             f"""
 Coupling requested via command line argument(s) {has_active_coupling_features}, but the 'coupling' module could not be
 imported due to the following error:
 
-{coupling_import_error}
+{coupling.coupling_supported_import_error}
 
 Hint: If you are missing 'yac', please install YAC and the python bindings as described under
 https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
 """
         )
-    else:
-        from coupler import NoCoupler
 
     # TODO: replace MPI.COMM_WORLD with communicator from ebfm; either from couplers comm splitting or default comm
     setup_logging(
@@ -222,7 +217,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
     logger.debug("Reading configuration and checking for consistency.")
 
     # TODO consider introducing an ebfm_adapter_config.yaml to be parsed alternatively/additionally to command line args
-    coupling_config = CouplingConfig(args, component_name="ebfm")
+    coupling_config = CouplingConfig(args, component_name="ebfm")  # TODO: get from EBFM's coupling configuration?
     grid_config = GridConfig(args)
     time_config = TimeConfig(args)
 
@@ -244,32 +239,38 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
 
     OUT, IN, OUTFILE = INIT.init_initial_conditions(C, grid, io, time)
 
+    # TODO: some grids currently do not have grid["mesh"]
+    try:
+        grid["mesh"]
+    except KeyError:
+        grid["mesh"] = None  # add dummy to make coupler.setup pass.
+
     if coupling_config.defines_coupling():
-        # TODO: introduce minimal stub implementation
-        # TODO consider introducing an ebfm_adapter_config.yaml
-        coupler = coupling.init(coupling_config=coupling_config)
-        coupling.setup(coupler, grid["mesh"], time)
+        coupler = coupling.YACCoupler(coupling_config=coupling_config)
     else:
-        coupler = NoCoupler(component_name=coupling_config.component_name)
+        coupler = coupling.DummyCoupler(coupling_config=coupling_config)
+
+    coupler.setup(grid["mesh"], time)
 
     # Time-loop
     logger.info("Entering time loop...")
-    for t in range(1, time["tn"] + 1):
+    for t in range(time["tn"]):
         # Print time to screen
         time["TCUR"] = LOOP_general_functions.print_time(t, time["ts"], time["dt"])
 
-        logger.info(f'Time step {t} of {time["tn"]} (dt = {time["dt"]} days)')
+        logger.info(f'Time step {t + 1} of {time["tn"]} (dt = {time["dt"]} days)')
 
         # Read and prepare climate input
-        if coupler and coupler.couple_to_icon_atmo:
+        if coupler.has_coupling_to("icon_atmo"):
             # Exchange data with ICON
+            icon_atmo = coupler.get_component("icon_atmo")
             logger.info("Data exchange with ICON")
             logger.debug("Started...")
             data_to_icon = {
                 "albedo": OUT["albedo"],
             }
 
-            data_from_icon = coupler.exchange_icon_atmo(data_to_icon)
+            data_from_icon = icon_atmo.exchange(data_to_icon)
 
             logger.debug("Done.")
             logger.debug("Received the following data from ICON:", data_from_icon)
@@ -298,7 +299,8 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
         # Calculate surface mass balance
         OUT = LOOP_mass_balance.main(OUT, IN, C)
 
-        if coupler.couple_to_elmer_ice:
+        if coupler.has_coupling_to("elmer_ice"):
+            elmer_ice = coupler.get_component("elmer_ice")
             # Exchange data with Elmer
             logger.info("Data exchange with Elmer/Ice")
             logger.debug("Started...")
@@ -308,7 +310,7 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
                 "T_ice": OUT["T_ice"],
                 "runoff": OUT["runoff"],
             }
-            data_from_elmer = coupler.exchange_elmer_ice(data_to_elmer)
+            data_from_elmer = elmer_ice.exchange(data_to_elmer)
             logger.debug("Done.")
             logger.debug("Received the following data from Elmer/Ice:", data_from_elmer)
 
@@ -319,25 +321,28 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
             # IN['dhdy'] = data_from_elmer('dhdy')
 
         # Write output to files (only in uncoupled run and for unpartitioned grid)
-        if not grid["is_partitioned"] and not coupler.has_coupling:
+        # TODO: should be supported for all cases to avoid case distinction here
+        if not grid["is_partitioned"] and isinstance(coupler, coupling.DummyCoupler):
             if grid_config.grid_type is GridInputType.MATLAB:
-                io, OUTFILE = LOOP_write_to_file.main(OUTFILE, io, OUT, grid, t, time, C)
+                io, OUTFILE = LOOP_write_to_file.main(OUTFILE, io, OUT, grid, t, time)
             else:
                 logger.warning("Skipping writing output to file for Elmer input grids.")
-        elif grid["is_partitioned"] or coupler.has_coupling:
+        elif grid["is_partitioned"] or not isinstance(coupler, coupling.DummyCoupler):
             logger.warning("Skipping writing output to file for coupled or partitioned runs.")
         else:
             logger.error("Unhandled case in output writing.")
             raise Exception("Unhandled case in output writing.")
 
     # Write restart file
-    if not grid["is_partitioned"] and not coupler.has_coupling:
+    # TODO: should be supported for all cases to avoid case distinction here
+    if not grid["is_partitioned"] and isinstance(coupler, coupling.DummyCoupler):
         FINAL_create_restart_file.main(OUT, io)
+    else:
+        logger.warning("Skipping writing of restart file for coupled and/or partitioned runs.")
 
     logger.info("Time loop completed.")
 
-    if coupler.has_coupling:
-        coupling.finalize(coupler)
+    coupler.finalize()
 
     logger.info("Closing down EBFM.")
 
