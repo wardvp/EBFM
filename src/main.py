@@ -315,7 +315,8 @@ https://dkrz-sw.gitlab-pages.dkrz.de/yac/d1/d9f/installing_yac.html"
             logger.debug("Received the following data from Elmer/Ice:", data_from_elmer)
 
             IN["h"] = data_from_elmer["h"]
-            grid["z"] = IN["h"][0].ravel()
+            if coupler.couple_to_icon_atmo:
+                grid["z"] = IN["h"][0].ravel()
             # TODO add gradient field later
             # IN['dhdx'] = data_from_elmer('dhdx')
             # IN['dhdy'] = data_from_elmer('dhdy')
