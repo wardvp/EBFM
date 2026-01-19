@@ -8,3 +8,12 @@
 build
 Output/*.nc
 Reboot/*.nc
+
+CLASS_DIAGRAM.mmd
+DESIGN_PATTERN_ANALYSIS.md
+REFACTORED_CLASS_DIAGRAM.md
+REFACTORED_CLASS_DIAGRAM_ANNOTATED.md
+docs/architecture.md
+src/ebfm/INIT.py.orig
+src/ebfm/constants/
+
