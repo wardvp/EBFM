@@ -30,7 +30,7 @@ cpl = [
 ]
 
 [project.scripts]
-ebfm = "main:main"
+ebfm = "ebfm.main:main"
 
 [build-system]
 requires = ["setuptools", "setuptools_scm"]
