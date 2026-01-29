@@ -245,8 +245,10 @@ if __name__ == "__main__":
         outpath = args.elmer_mesh
     else:
         assert args.outpath is not None, "You must specify --outpath when not using --in-place."
-        assert not args.outpath.exists(), f"Output path {args.outpath} already exists. Please pick a different folder "
-        "name or use the --in-place option to overwrite existing mesh at {args.elmer_mesh}."
+        assert not args.outpath.exists(), (
+            f"Output path {args.outpath} already exists. Please pick a different folder name or use the --in-place "
+            f"option to overwrite the existing mesh at {args.elmer_mesh}."
+        )
         outpath = args.outpath
 
     print("I'm running as main...")
@@ -257,8 +259,9 @@ if __name__ == "__main__":
     y = mesh.y_vertices
     h = read_dem(args.dem, x, y)
 
-    if outpath != args.elmer_mesh:
+    # Only copy when not operating in-place; skip nodes so we can write a fresh file
+    if not args.in_place:
         assert args.elmer_mesh.is_dir(), f"{args.elmer_mesh} is no directory or does not exist."
-        shutil.copytree(args.elmer_mesh, outpath)
+        shutil.copytree(args.elmer_mesh, outpath, ignore=shutil.ignore_patterns("mesh.nodes"))
 
-    write_dem_as_elmer(mesh, h, outpath / "mesh.nodes", allow_overwrite=True)
+    write_dem_as_elmer(mesh, h, outpath / "mesh.nodes", allow_overwrite=args.in_place)
