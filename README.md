@@ -176,7 +176,7 @@ Alternatively, you can modify the mesh directly in place, which overwrites `mesh
 python3 src/ebfm/reader.py examples/MESH examples/BedMachineGreenland-v5.nc --in-place
 ```
 
-The resulting mesh can then be used directly with EBFM:
+The resulting mesh can then be used directly with EBFM similar to the example with the MATLAB file from above:
 
 ```sh
 ebfm --elmer-mesh examples/MESH_with_DEM
