@@ -151,6 +151,37 @@ Usage example for partitioned mesh:
 ebfm --elmer-mesh examples/MESH/partitioning.128/ --netcdf-mesh examples/BedMachineGreenland-v5.nc --is-partitioned-elmer-mesh --use-part 42
 ```
 
+### Getting the example data
+
+The example inputs and datasets referenced above (e.g. `BedMachineGreenland-v5.nc` or `MESH`) can be obtained from the [TerraDT testcase repository](https://gitlab.dkrz.de/TerraDT/testcase). Please note that access to this repository may need to be requested, and you must have access to the Levante supercomputer at DKRZ.
+
+Once available, you can either copy or symlink the required files into the `examples/` directory of this repository, or point EBFM to their locations using the CLI arguments shown above.
+
+
+### Using `reader.py` to prepare an Elmer mesh with elevation data
+
+The helper script `reader.py` can be used to combine an existing Elmer mesh with a DEM NetCDF file by replacing the z‑coordinates in `mesh.nodes` ahead of time. This can be useful if you want to preprocess a mesh once and reuse it for multiple EBFM runs.
+
+Assuming the example data has been copied into the `examples/` directory as described above, you can run the following command from the repository root:
+
+```sh
+python3 src/ebfm/reader.py examples/MESH examples/BedMachineGreenland-v5.nc --outpath examples/MESH_with_DEM
+```
+
+This will write the updated mesh to a new directory. The path `examples/MESH_with_DEM` should not already exist. The original `examples/MESH` directory is copied and left unchanged.
+
+Alternatively, you can modify the mesh directly in place, which overwrites `mesh.nodes`:
+
+```sh
+python3 src/ebfm/reader.py examples/MESH examples/BedMachineGreenland-v5.nc --in-place
+```
+
+The resulting mesh can then be used directly with EBFM similar to the example with the MATLAB file from above:
+
+```sh
+ebfm --elmer-mesh examples/MESH_with_DEM
+```
+
 ### Coupled simulation
 
 The EBFM code allows coupling to other simulation codes. The following arguments
@@ -180,11 +211,11 @@ mpirun -np 1 ebfm \
 ```
 
 Be aware that the command above requires setting a few environment variables.
-Assuming your project is structured following [this repository](https://gitlab.dkrz.de/k202215/ebfm_dummy),
+Assuming your project is structured following [this repository](https://gitlab.dkrz.de/TerraDT/ebfm_dummy),
 the following settings should help getting started:
 
 ```sh
-export EBFM_DUMMY_REPO=/path/to/k202215/ebfm_dummy
+export EBFM_DUMMY_REPO=/path/to/TerraDT/ebfm_dummy
 export EBFM_REPO=/path/to/this/repo
 
 export CPL_CONFIG=$EBFM_DUMMY_REPO/config/coupling.yaml

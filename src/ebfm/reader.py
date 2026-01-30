@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from pathlib import Path
+import shutil
 
 import argparse
 
@@ -234,7 +235,23 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Read Elmer mesh and DEM files.")
     parser.add_argument("elmer_mesh", type=Path, help="Path to the Elmer mesh file.")
     parser.add_argument("dem", type=Path, help="Path to the digital elevation model (DEM) NetCDF file.")
+    parser.add_argument("-o", "--outpath", type=Path, help="Output path to the new mesh with DEM.", default=None)
+    parser.add_argument(
+        "-i", "--in-place", help="Make changes to mesh in place (will overwrite existing mesh!)", action="store_true"
+    )
     args = parser.parse_args()
+
+    outpath: Path
+    if args.in_place:
+        assert args.outpath is None, "You cannot specify --outpath when using --in-place."
+        outpath = args.elmer_mesh
+    else:
+        assert args.outpath is not None, "You must specify --outpath when not using --in-place."
+        assert not args.outpath.exists(), (
+            f"Output path {args.outpath} already exists. Please pick a different folder name or use the --in-place "
+            f"option to overwrite the existing mesh at {args.elmer_mesh}."
+        )
+        outpath = args.outpath
 
     print("I'm running as main...")
     print(f"Reading the following files: {args.elmer_mesh} and {args.dem}")
@@ -244,4 +261,9 @@ if __name__ == "__main__":
     y = mesh.y_vertices
     h = read_dem(args.dem, x, y)
 
-    write_dem_as_elmer(mesh, h, args.elmer_mesh / "MESH" / "mesh.nodes", allow_overwrite=True)
+    # Only copy when not operating in-place; skip nodes so we can write a fresh file
+    if not args.in_place:
+        assert args.elmer_mesh.is_dir(), f"{args.elmer_mesh} is no directory or does not exist."
+        shutil.copytree(args.elmer_mesh, outpath, ignore=shutil.ignore_patterns("mesh.nodes"))
+
+    write_dem_as_elmer(mesh, h, outpath / "mesh.nodes", allow_overwrite=args.in_place)
